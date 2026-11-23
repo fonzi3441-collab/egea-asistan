@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="ikon_mavi">#FF1565C0</color>
+    <color name="ikon_gri">#FF37474F</color>
+    <color name="arka">#FF0E1116</color>
+    <color name="panel">#FF1A1F27</color>
+    <color name="vurgu">#FF2E86F5</color>
+    <color name="yazi">#FFF2F4F7</color>
+    <color name="soluk">#FF9AA4B2</color>
+</resources>

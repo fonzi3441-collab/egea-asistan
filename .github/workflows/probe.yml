@@ -1,42 +1,15 @@
 name: probe
 on:
+  workflow_dispatch:
   push:
     branches: ['**']
-  workflow_dispatch:
 jobs:
   probe:
     runs-on: ubuntu-latest
     steps:
-      - name: Google Maven surumleri ve runner SDK
+      - name: Aksiyon sürümleri
         run: |
           set +e
-          M=https://dl.google.com/dl/android/maven2
-          vers() { curl -s "$M/$1/maven-metadata.xml" | grep -oE '<version>[^<]+</version>' | sed -E 's#</?version>##g' | grep -vE 'alpha|beta|rc|dev' | tail -${2:-8} | tr '\n' ' '; echo; }
-          echo "== AGP stable =="; vers com/android/tools/build/gradle 25
-          echo "== AGP all (son 10) =="; curl -s "$M/com/android/tools/build/gradle/maven-metadata.xml" | grep -oE '<version>[^<]+</version>' | tail -10 | tr '\n' ' '; echo
-          LATEST=$(curl -s "$M/com/android/tools/build/gradle/maven-metadata.xml" | grep -oE '<version>[^<]+</version>' | sed -E 's#</?version>##g' | grep -vE 'alpha|beta|rc|dev' | tail -1)
-          echo "== AGP $LATEST POM (kotlin/gradle bagimliliklari) =="
-          curl -s "$M/com/android/tools/build/gradle/$LATEST/gradle-$LATEST.pom" | grep -A2 -iE 'kotlin|builder<' | head -40
-          for a in androidx/core/core-ktx androidx/core/core androidx/activity/activity-ktx androidx/lifecycle/lifecycle-runtime-ktx com/android/tools/build/aapt2; do
-            echo "== $a =="; vers $a 6
+          for r in actions/checkout actions/setup-java actions/upload-artifact actions/cache gradle/actions; do
+            echo "$r: $(git ls-remote --tags --refs https://github.com/$r | grep -oE 'refs/tags/v[0-9]+$' | sed 's#refs/tags/##' | sort -V | tail -3 | tr '\n' ' ')"
           done
-          for v in 36 35 34; do
-            echo "== androidx core minCompileSdk icin core-ktx son surum aar metadata =="; break
-          done
-          CK=$(curl -s "$M/androidx/core/core/maven-metadata.xml" | grep -oE '<version>[^<]+</version>' | sed -E 's#</?version>##g' | grep -vE 'alpha|beta|rc|dev' | tail -1)
-          AV=$(curl -s "$M/androidx/activity/activity/maven-metadata.xml" | grep -oE '<version>[^<]+</version>' | sed -E 's#</?version>##g' | grep -vE 'alpha|beta|rc|dev' | tail -1)
-          for pair in "androidx/core/core/$CK/core-$CK.aar" "androidx/activity/activity/$AV/activity-$AV.aar"; do
-            echo "== $pair aar-metadata =="
-            curl -s -o /tmp/x.aar "$M/$pair" && unzip -p /tmp/x.aar META-INF/com/android/build/gradle/aar-metadata.properties
-            echo
-          done
-          echo "== SDK =="
-          echo "ANDROID_HOME=$ANDROID_HOME ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT"
-          ls "$ANDROID_HOME"
-          echo "-- platforms:"; ls "$ANDROID_HOME/platforms"
-          echo "-- build-tools:"; ls "$ANDROID_HOME/build-tools"
-          echo "-- cmdline-tools:"; ls "$ANDROID_HOME/cmdline-tools"
-          java -version 2>&1
-          echo "JAVA_HOME_17_X64=$JAVA_HOME_17_X64 JAVA_HOME_21_X64=$JAVA_HOME_21_X64"
-          gh --version | head -1
-          cat /etc/os-release | head -3

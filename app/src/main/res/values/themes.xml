@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Koyu tema (platform Material, ek kütüphane gerektirmez) -->
+    <style name="Tema" parent="@android:style/Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/arka</item>
+        <item name="android:colorBackground">@color/arka</item>
+        <item name="android:colorPrimary">@color/panel</item>
+        <item name="android:colorPrimaryDark">@color/arka</item>
+        <item name="android:colorAccent">@color/vurgu</item>
+        <item name="android:textColorPrimary">@color/yazi</item>
+        <item name="android:textColorSecondary">@color/soluk</item>
+        <item name="android:statusBarColor">@color/arka</item>
+        <item name="android:navigationBarColor">@color/arka</item>
+    </style>
+
+    <!-- Dinleme ekranı: yarı saydam, alttaki uygulama (harita/müzik) görünmeye devam eder -->
+    <style name="Tema.Seffaf" parent="@android:style/Theme.Material.NoActionBar">
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowContentOverlay">@null</item>
+        <item name="android:backgroundDimEnabled">false</item>
+        <item name="android:colorBackgroundCacheHint">@null</item>
+        <item name="android:windowAnimationStyle">@android:style/Animation.Translucent</item>
+        <item name="android:colorAccent">@color/vurgu</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+    </style>
+</resources>
