@@ -22,6 +22,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.lifecycle.lifecycleScope
 import com.egea.asistan.AsistanApp
+import com.egea.asistan.BuildConfig
 import com.egea.asistan.Izinler
 import com.egea.asistan.R
 import com.egea.asistan.core.Cevaplar
@@ -85,6 +86,7 @@ class ListenActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        if (BuildConfig.DEBUG && intent.getBooleanExtra(TEST_KURULUM, false)) app.ayarlar.kurulumTamam = true
         if (!app.ayarlar.kurulumTamam) {
             startActivity(Intent(this, SetupActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
             finish()
@@ -107,6 +109,11 @@ class ListenActivity : ComponentActivity() {
         bekleyenSoru = null
         kisiBekleniyor = false
         app.konusmaci.sustur()
+        val test = testMetni(intent)
+        if (test != null) {
+            sonuclariIsle(listOf(test))
+            return
+        }
         dinle()
     }
 
@@ -205,6 +212,11 @@ class ListenActivity : ComponentActivity() {
     private fun basla() {
         app.konusmaci.sustur()
         app.odak.geciciAl()
+        val test = testMetni(intent)
+        if (test != null) {
+            sonuclariIsle(listOf(test))
+            return
+        }
         if (!Izinler.mikrofon(this)) {
             mikrofonIzni.launch(Manifest.permission.RECORD_AUDIO)
             return
@@ -541,4 +553,13 @@ class ListenActivity : ComponentActivity() {
 
     @Suppress("DEPRECATION")
     private fun animasyonsuz() = overridePendingTransition(0, 0)
+
+    /** Sadece debug derlemede: emülatör duman testi için konuşma yerine metin (adb ile). */
+    private fun testMetni(i: Intent?): String? =
+        if (BuildConfig.DEBUG) i?.getStringExtra(TEST_METIN)?.takeIf { it.isNotBlank() } else null
+
+    companion object {
+        const val TEST_METIN = "test_metin"
+        const val TEST_KURULUM = "test_kurulum_tamam"
+    }
 }
