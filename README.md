@@ -24,9 +24,10 @@ uygulama işlemi yapıyor, sesli cevap veriyor ve kapanıp önceki ekrana (harit
 Sonraki sürümler aynı imza anahtarıyla imzalandığı için **eskisinin üstüne kurulur** (verileriniz kalır).
 Uygulama içinden de güncelleyebilirsiniz: *Egea Ayarlar → Güncellemeleri denetle ve kur*.
 
-Kurulumdan sonra iki ikon görürsünüz:
+Kurulumdan sonra üç ikon görürsünüz:
 - **Egea Asistan** (mikrofon): basınca doğrudan dinler.
-- **Egea Ayarlar** (dişli): ayarlar, kurulum sihirbazı, tanı ekranı, güncelleme.
+- **Egea** (ekran): ana ekran — büyük saat, Radyo, TV, Asistan, hızlı kutular (navigasyon, müzik, telefon, eve git).
+- **Egea Ayarlar** (dişli): ayarlar, "Hey Egea" öğretme, kurulum sihirbazı, tanı ekranı, güncelleme.
 
 ## 2. İlk kurulum
 
@@ -76,7 +77,43 @@ Sonra **Egea Ayarlar**'da:
 - Rehber teybe eşitlenmiyorsa telefondan rehberi `.vcf` olarak dışa aktarıp **.vcf içe aktar** deyin, ya da **favori** ekleyin
   ("Annem", "Eşim" gibi).
 
-## 3. Direksiyon tuşunu bağlama (Hiworld CanBox)
+## 3. "Hey Egea" ile eller serbest
+
+"Hey Egea" ya da "Hey Ege" deyince asistan **"Dinliyorum"** der ve komutunu dinler; komutu söylersin, işlemi yapıp
+önceki ekrana döner. Uyandırma kelimesi **internetsiz ve sadece teypte** tanınır (kayıt hiçbir yere gönderilmez).
+
+**Bir kerelik öğretme (1 dakika):**
+1. **Egea Ayarlar → "Hey Egea"yı öğret** (ya da Egea ana ekranındaki "Hey Egea" yazısına dokun).
+2. Müzik kapalıyken 4 kayıt al: 2 kez "Hey Egea", 2 kez "Hey Ege". Her kayıtta "ŞİMDİ SÖYLE" yazınca normal sesle söyle.
+3. **Kaydet ve aç**. **Dene (15 sn)** ile birkaç kez söyleyip algılandığını gör.
+4. Sık yanlış tetikleniyorsa duyarlılığı sola, zor algılıyorsa sağa çek.
+
+İpuçları:
+- Kim öğrettiyse onun sesine göre çalışır; başka sürücü kullanacaksa kendi sesiyle yeniden öğretsin.
+- Müzik çok yüksekken algılama zorlaşır; o zaman direksiyon tuşunu ya da ekrandaki mikrofonu kullan.
+  Ayarlar'da mikrofon kaynağını "İletişim (yankı giderme)" yapmak bazı teyplerde müziği bastırır.
+- Telefon görüşmesi sırasında dinleme kendiliğinden durur.
+- Teyp yeniden açıldıktan sonra Android arka planda mikrofonu kısıtlayabilir; **Egea'yı bir kez açmak** yeterli.
+  Durumu Tanı ekranındaki "HEY EGEA" bölümünde görürsün.
+
+## 4. Radyo ve TV (ücretsiz, uygulama reklam eklemez)
+
+**Radyo:** Türkiye'deki ~700 internet radyosu ([Radio Browser](https://www.radio-browser.info), açık ve ücretsiz
+veritabanı). Egea → **Radyo**: arama, tür çipleri (Pop, Türkçe, Rock, Arabesk, Türkü, Haber…), ★ favoriler.
+Radyo arka planda çalar; bildirim, direksiyon medya tuşları ve "sonraki/önceki/durdur" komutları çalışır.
+Asistan dinlerken radyo otomatik durur, bitince devam eder.
+
+**TV:** Herkese açık, ücretsiz yayınlar (varsayılan liste: [iptv-org](https://github.com/iptv-org/iptv) Türkiye
+listesi — TRT 1, TRT Haber, Kanal D, ATV, Star, NOW, TV8, Habertürk…). Egea → **TV** → kanala dokun, tam ekran açılır;
+dokununca üst çubuk ve kanal listesi gelir, ◀ ▶ ile kanal değişir. İstersen Ayarlar'dan kendi M3U listeni girebilirsin.
+Bazı kanallar "Türkiye'den" (yurt dışında açılmaz) ya da "her an değil" (7/24 yayın yok) işaretlidir.
+
+**Sürüş güvenliği:** Araç hareket halindeyken (GPS hızı > 10 km/s) TV görüntüsü gizlenir, **ses devam eder**;
+araç durunca görüntü geri gelir. Konum izni gerekir; Ayarlar → Radyo ve TV'den kapatılabilir (önerilmez).
+
+Uygulama kendi reklamını eklemez; kanalların/radyoların kendi yayınındaki reklamlar yayının parçasıdır.
+
+## 5. Direksiyon tuşunu bağlama (Hiworld CanBox)
 
 Direksiyon tuşları CanBox'tan teybin kendi CAN uygulamasına gelir; teyp bunu ya bir **tuş kodu** ya da bir
 **sesli komut intent'i** olarak iletir. Hangisi olduğunu öğrenmek için:
@@ -96,7 +133,7 @@ Direksiyon tuşları CanBox'tan teybin kendi CAN uygulamasına gelir; teyp bunu 
 
 Hiçbiri olmazsa yüzen mikrofon butonu her zaman çalışır.
 
-## 4. Komutlar
+## 6. Komutlar
 
 Ekleri ve farklı söyleyişleri de anlar ("Park'a/Parka", "Ahmet'i/Ahmeti", "arar mısın", "götürür müsün"…).
 
@@ -125,18 +162,27 @@ Ekleri ve farklı söyleyişleri de anlar ("Park'a/Parka", "Ahmet'i/Ahmeti", "ar
 - "Tarkan Şımarık aç", "Sezen Aksu çal", "Tarkan'ın Şımarık şarkısını aç", "biraz Barış Manço dinleyelim"
 - "Spotify'dan Sezen Aksu çal", "YouTube'dan Tarkan aç", "YouTube Müzik'te Tarkan çal"
 
+**Radyo**
+- "radyo aç", "radyoyu aç" (son çalan istasyon), "Kral FM'i aç", "Power FM aç", "radyoda Joy Türk aç",
+  "Virgin Radio çal", "Radyo Fenomen dinle"
+- "sonraki kanal", "radyoyu değiştir", "radyoyu kapat"
+
+**Televizyon**
+- "televizyonu aç", "TV'yi aç", "TRT 1 aç", "Show TV aç", "Kanal D'yi aç", "TRT Haber izle", "haber kanalını aç"
+- "sonraki kanal", "televizyonu kapat"
+
 **Uygulamada arama** (telefon araması değil)
 - "YouTube'da Tarkan ara", "Spotify'da Sezen Aksu ara", "Google'da hava durumu ara"
 
 **Uygulama açma** (yüklü uygulama adlarıyla bulanık eşleştirme)
-- "YouTube'u aç", "Spotify aç", "haritayı aç", "radyoyu aç", "ayarları aç", "telefonu aç"
+- "YouTube'u aç", "Spotify aç", "haritayı aç", "ayarları aç", "telefonu aç", "radyo uygulamasını aç" (teybin FM radyosu)
 
 **Diğer**
 - "saat kaç", "bugün günlerden ne"
 - "iptal", "vazgeç", "boş ver", "kapat", "tamam"
 - Anlaşılmazsa *"Anlayamadım, tekrar söyler misin?"* deyip bir kez daha dinler.
 
-## 5. Telefon araması nasıl yapılıyor?
+## 7. Telefon araması nasıl yapılıyor?
 
 Teybin Bluetooth uygulaması üreticiye göre değiştiği için bir **yöntem zinciri** var. Her denemenin sonucu
 Tanı ekranındaki komut loguna yazılır:
@@ -152,7 +198,7 @@ Tanı ekranında **tel: ÇÖZÜCÜLER**, **TELECOM PHONEACCOUNT** ve **BLUETOOTH
 data şablonu, extra anahtarı/değeri) ve **Özel intent'i test et** ile deneyin. Çalışınca *Telefon araması yöntemi*
 bölümünden **Önce özel intent** ya da **Sadece özel intent** seçin.
 
-## 6. Tanı ekranı
+## 8. Tanı ekranı
 
 Tek ekranda üç sütun (fotoğrafını çekip gönderebilirsiniz; **Kopyala/Paylaş** düğmeleri de var):
 - **Sistem:** ayarlarda yazan Android sürümü ile **gerçek API seviyesi**, ABI'ler, gerçek RAM (`/proc/meminfo`),
@@ -161,11 +207,13 @@ Tek ekranda üç sütun (fotoğrafını çekip gönderebilirsiniz; **Kopyala/Pay
   DIAL çözen bileşenler, Telecom PhoneAccount'ları, arama zinciri durumu, bu ekran açıkken basılan tuşların
   KeyEvent kodları.
 - **Son 50 komut:** tanınan metin → niyet → yöntem → sonuç.
+- Ayrıca: ekran yenileme hızı ve ölçülen FPS, "Hey Egea" motor durumu (eşik, son mesafe, algılama sayısı),
+  radyo/TV listeleri ve çalan yayın.
 
 Türkçe ses yoksa ekran uyarır: **Google Konuşma Hizmetleri** (`com.google.android.tts`) kurun ve
 *Ayarlar → Dil → Metin okuma çıkışı*'ndan Türkçe ses verisini indirin.
 
-## 7. Varsayımlar
+## 9. Varsayımlar
 
 İstenen şekilde soru sorulmadan aşağıdaki varsayımlarla ilerlendi:
 
@@ -211,8 +259,23 @@ Türkçe ses yoksa ekran uyarır: **Google Konuşma Hizmetleri** (`com.google.an
 - **Depo public** olduğu için indirme linki ve uygulama içi güncelleme giriş gerektirmez. Depo private yapılırsa ikisi de
   çalışmaz.
 - Arayüz Türkçe, koyu tema, 1280x720 yatay ekran ve büyük butonlar için tasarlandı; diğer ekranlarda kaydırılabilir.
+- **Akıcılık (FPS):** zayıf teyp işlemcileri için Jetpack Compose yerine klasik View + RecyclerView kullanıldı; listeler
+  görünüm geri dönüşümüyle, logolar arka planda hedef boyuta küçültülüp önbelleğe alınarak yüklenir; geçişler GPU
+  katmanında yapılır; ekran 60 Hz'den yüksek modu destekliyorsa en yüksek yenileme hızı istenir. Ölçülen FPS Tanı
+  ekranında ve (isteğe bağlı) ana ekran köşesinde görünür.
+- **"Hey Egea":** Picovoice/Vosk gibi native kütüphaneler "native kütüphane yok" kuralı nedeniyle kullanılmadı;
+  saf Kotlin MFCC + enerji tabanlı konuşma bölütleme + DTW şablon eşleştirme yazıldı. Bu yüzden kullanıcının sesiyle bir
+  kez öğretme gerekir ve konuşan kişiye bağımlıdır. Google'ın tanıyıcısını sürekli açık tutmak (internet tüketir, bip
+  sesi çıkarır, müziği keser) tercih edilmedi. "Hey Egea" sonrası her zaman "Dinliyorum" denir; mikrofon/direksiyon tuşu
+  ile açınca da denmesi istenirse Ayarlar'dan açılabilir.
+- **Radyo/TV kaynakları:** Radyo listesi Radio Browser API'den (24 saat önbellek), TV listesi M3U adresinden (12 saat
+  önbellek). Birçok yayın `http://` olduğu için açık metin trafiğine izin verildi (`usesCleartextTraffic=true`).
+  Kanal adı söylenip bulunamazsa ("TRT 1 aç" gibi komutlar önce TV/radyo listesinde aranır) şarkı olarak aranır.
+- **Sürüş kilidi** varsayılan olarak açık; GPS hızı 10 km/s üstünde iki ölçüm "hareketli", 5 km/s altında üç ölçüm
+  "duruyor" sayılır. Konum izni verilmezse kilit çalışamaz (görüntü gizlenmez).
+- "radyo aç" artık uygulamanın internet radyosunu açar; teybin kendi FM radyosu için "radyo uygulamasını aç" denir.
 
-## 8. Geliştirme
+## 10. Geliştirme
 
 ```
 core/   Saf Kotlin komut çözümleyici (Android'den bağımsız) + JVM testleri
@@ -221,7 +284,10 @@ app/    Android uygulaması
 
 - `core` modülü: normalize (İ/ı, kesme işaretleri), Türkçe ek atma, yazıyla sayılar, niyet çıkarma
   (`ARA`, `NAVIGASYON`, `MEDYA`, `SARKI_CAL`, `UYGULAMA_AC`, `SAAT`, `IPTAL`), kişi ve uygulama bulanık eşleştirme,
-  seçim cevabı çözme, .vcf okuyucu. 150'den fazla JVM testi (130'dan fazlası örnek cümle).
+  seçim cevabı çözme, .vcf okuyucu, M3U okuyucu, radyo/kanal adı eşleştirme ve "Hey Egea" sinyal işleme (MFCC, VAD, DTW).
+  180'den fazla JVM testi (150'den fazlası örnek cümle).
+- `scripts/duman-testi.sh` + `.github/workflows/duman-testi.yml`: her push'ta debug APK'yı Android emülatöründe
+  (1280x720, 160 dpi) kurar; ekranları açar, metin komutlarını dener, radyo/TV oynatmayı kontrol eder, çökme arar.
 - CI: `.github/workflows/build.yml` — her dala push'ta ve elle tetiklemede: JDK 17, unit testler, `assembleRelease`,
   APK'yı `egea-asistan.apk` adıyla artifact olarak ve `latest` release'e yükler.
 

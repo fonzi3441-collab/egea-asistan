@@ -57,6 +57,8 @@ class YuzenButonServisi : Service() {
             stopSelf()
             return START_NOT_STICKY
         }
+        // Her startForegroundService çağrısından sonra startForeground yenilenmeli.
+        onPlanaGec(mikrofonluOnPlan)
         val a = AsistanApp.ornek.ayarlar
         if (a.yuzenButon && Settings.canDrawOverlays(this)) balonuEkle() else balonuKaldir()
         uyandirmaGuncelle(intent?.getBooleanExtra(EXTRA_YENIDEN_YUKLE, false) == true)
