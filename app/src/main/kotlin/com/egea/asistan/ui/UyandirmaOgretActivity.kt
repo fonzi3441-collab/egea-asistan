@@ -35,6 +35,8 @@ class UyandirmaOgretActivity : ComponentActivity() {
     private lateinit var duyarlilikYazi: TextView
     private val ana = Handler(Looper.getMainLooper())
 
+    private var carpanDegisti = false
+
     @Volatile
     private var kayitta = false
 
@@ -71,11 +73,15 @@ class UyandirmaOgretActivity : ComponentActivity() {
             duyarlilikYazi = yazi(duyarlilikMetni(AsistanApp.ornek.ayarlar.uyandirmaCarpan), 17f)
             val cubuk = SeekBar(this@UyandirmaOgretActivity)
             cubuk.max = 100
-            cubuk.progress = (((AsistanApp.ornek.ayarlar.uyandirmaCarpan - 0.9f) / 0.8f) * 100).toInt().coerceIn(0, 100)
+            val enSiki = UyandirmaDedektoru.EN_SIKI_CARPAN
+            val aralik = UyandirmaDedektoru.EN_GEVSEK_CARPAN - enSiki
+            cubuk.progress = (((AsistanApp.ornek.ayarlar.uyandirmaCarpan - enSiki) / aralik) * 100).toInt().coerceIn(0, 100)
             cubuk.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
                 override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
-                    val c = 0.9f + progress / 100f * 0.8f
+                    if (!fromUser) return
+                    val c = enSiki + progress / 100f * aralik
                     AsistanApp.ornek.ayarlar.uyandirmaCarpan = c
+                    carpanDegisti = true
                     duyarlilikYazi.text = duyarlilikMetni(c)
                 }
 
@@ -106,13 +112,21 @@ class UyandirmaOgretActivity : ComponentActivity() {
         kayitta = false
         testte = false
         UyandirmaKontrol.devamEt(300)
+        // Duyarlılık değiştiyse çalışan motor yeni eşiklerle yeniden kurulsun.
+        if (carpanDegisti && AsistanApp.ornek.ayarlar.uyandirma) YuzenButonServisi.uygunsaBaslat(this, yenidenYukle = true)
         super.onDestroy()
     }
 
     private fun duyarlilikMetni(c: Float): String = when {
-        c < 1.1f -> "Seçici (az yanlış alarm) • ${"%.2f".format(c)}"
-        c < 1.4f -> "Dengeli • ${"%.2f".format(c)}"
-        else -> "Kolay tetiklenir • ${"%.2f".format(c)}"
+        c < 1.4f -> "Seçici (az yanlış alarm) • ${"%.2f".format(c)}"
+        c < 1.75f -> "Dengeli • ${"%.2f".format(c)}"
+        else -> "Kolay tetiklenir (gürültülü araç) • ${"%.2f".format(c)}"
+    }
+
+    /** Bu ekranda alınmış kayıtlar ve sözleri (slot 0-1 "Hey Egea", 2-3 "Hey Ege"). */
+    private fun yeniKayitlar(): Pair<List<List<FloatArray>>, IntArray> {
+        val dolu = (0 until 4).filter { sablonlar[it] != null }
+        return dolu.map { sablonlar[it]!! } to IntArray(dolu.size) { if (dolu[it] < 2) 0 else 1 }
     }
 
     @SuppressLint("MissingPermission")
@@ -199,47 +213,59 @@ class UyandirmaOgretActivity : ComponentActivity() {
     }
 
     private fun kaydetVeAc() {
-        val l = sablonlar.filterNotNull()
+        val (l, gruplar) = yeniKayitlar()
         if (l.size < 2) {
             Toast.makeText(this, "En az 2 kayıt gerekli (4 önerilir)", Toast.LENGTH_LONG).show()
             return
         }
-        val v = UyandirmaDeposu.kaydet(this, l)
+        val v = UyandirmaDeposu.kaydet(this, l, gruplar)
         AsistanApp.ornek.ayarlar.uyandirma = true
+        carpanDegisti = false
         YuzenButonServisi.uygunsaBaslat(this, yenidenYukle = true)
-        durum.text = "Kaydedildi (${l.size} örnek, taban ${"%.1f".format(v.tabanMesafe)}). Artık “Hey Egea” diyebilirsin."
+        val ayiklanan = UyandirmaDeposu.dedektor(v, AsistanApp.ornek.ayarlar.uyandirmaCarpan).ayiklananSayisi
+        durum.text = if (ayiklanan > 0) {
+            "Kaydedildi, ama $ayiklanan kayıt diğerlerinden çok uzun (gürültü/öksürük?) ve kullanılmadı. " +
+                "Süresi uzun görünen kaydı yeniden alıp tekrar kaydedin."
+        } else {
+            "Kaydedildi (${l.size} örnek). Artık “Hey Egea” diyebilirsin."
+        }
     }
 
     private fun dene() {
         if (kayitta || testte) return
-        val kayitli = sablonlar.filterNotNull().ifEmpty { UyandirmaDeposu.yukle(this)?.sablonlar ?: emptyList() }
+        val yeni = yeniKayitlar()
+        val (kayitli, gruplar) = if (yeni.first.size >= 2) {
+            yeni
+        } else {
+            UyandirmaDeposu.yukle(this)?.let { it.sablonlar to it.gruplar } ?: (emptyList<List<FloatArray>>() to IntArray(0))
+        }
         if (kayitli.size < 2) {
             durum.text = "Önce en az 2 kayıt alın."
             return
         }
-        val esik = maxOf(UyandirmaDedektoru.tabanMesafe(kayitli) * AsistanApp.ornek.ayarlar.uyandirmaCarpan, 1f)
+        val carpan = AsistanApp.ornek.ayarlar.uyandirmaCarpan
         val r = kayitAc() ?: run {
             durum.text = "Mikrofon açılamadı."
             return
         }
         testte = true
-        durum.text = "Deneme: “Hey Egea” deyin… (eşik ${"%.1f".format(esik)})"
+        durum.text = "Deneme: “Hey Egea” deyin…"
         Thread {
-            val dedektor = UyandirmaDedektoru(kayitli, esik)
+            val dedektor = UyandirmaDedektoru(kayitli, gruplar, carpan)
             val tampon = ShortArray(1600)
             val bitis = System.currentTimeMillis() + 15_000
             var algilama = 0
-            var sonMesafe = Float.NaN
+            var sonOran = Float.NaN
             try {
                 r.startRecording()
                 while (testte && System.currentTimeMillis() < bitis) {
                     val n = r.read(tampon, 0, tampon.size)
                     if (n <= 0) break
                     val bulundu = dedektor.isle(tampon, n)
-                    if (dedektor.sonMesafe != sonMesafe) {
-                        sonMesafe = dedektor.sonMesafe
-                        val m = sonMesafe
-                        ana.post { seviye.text = "Son söz mesafesi: ${"%.1f".format(m)} (eşik ${"%.1f".format(esik)})" }
+                    val oran = dedektor.sonOran
+                    if (!oran.isNaN() && oran != sonOran) {
+                        sonOran = oran
+                        ana.post { seviye.text = "Son söz: eşiğe oran ${"%.2f".format(oran)} (1,00 ve altı algılanır)" }
                     }
                     if (bulundu) {
                         algilama++

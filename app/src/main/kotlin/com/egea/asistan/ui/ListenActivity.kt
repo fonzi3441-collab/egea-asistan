@@ -52,6 +52,10 @@ class ListenActivity : ComponentActivity() {
     private var tekrarHakki = 1
     private var hizliTekrarYapildi = false
     private var mikrofonBeklendi = false
+
+    /** Oturum "Hey Egea" ile mi açıldı ve kullanıcı konuştu mu (yanlış uyandırmada sessizce kapanmak için). */
+    private var uyandirmaOturumu = false
+    private var konusmaDuyuldu = false
     private var bekleyenSoru: Plan.Soru? = null
     private var bekleyenSoruOzeti = ""
     private var kisiBekleniyor = false
@@ -114,6 +118,7 @@ class ListenActivity : ComponentActivity() {
         sonAcilis = SystemClock.elapsedRealtime()
         if (bitiyor) return
         // Dinlerken mikrofon butonuna/tuşa tekrar basılırsa baştan dinle.
+        uyandirmaOturumu = false
         tanimayiKapat()
         tekrarHakki = 1
         bekleyenSoru = null
@@ -239,7 +244,8 @@ class ListenActivity : ComponentActivity() {
             mikrofonIzniIste()
             return
         }
-        if (intent.getBooleanExtra(EXTRA_UYANDIRMA, false) || app.ayarlar.dinliyorumDe) {
+        uyandirmaOturumu = intent.getBooleanExtra(EXTRA_UYANDIRMA, false)
+        if (uyandirmaOturumu || app.ayarlar.dinliyorumDe) {
             // "Hey Egea" sonrası: önce "Dinliyorum" de, sonra komutu dinle.
             durum("Dinliyorum…")
             app.konusmaci.konus("Dinliyorum") { if (!bitiyor && !isFinishing) dinle() }
@@ -332,7 +338,9 @@ class ListenActivity : ComponentActivity() {
             durum(if (kisiBekleniyor) Cevaplar.KIMI_ARAYAYIM else "Dinliyorum…")
         }
 
-        override fun onBeginningOfSpeech() {}
+        override fun onBeginningOfSpeech() {
+            konusmaDuyuldu = true
+        }
 
         override fun onRmsChanged(rmsdB: Float) = seviyeGoster(rmsdB)
 
@@ -351,7 +359,10 @@ class ListenActivity : ComponentActivity() {
 
         override fun onPartialResults(partialResults: Bundle?) {
             partialResults?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull()
-                ?.takeIf { it.isNotBlank() }?.let { metin(it) }
+                ?.takeIf { it.isNotBlank() }?.let {
+                    konusmaDuyuldu = true
+                    metin(it)
+                }
         }
 
         override fun onEvent(eventType: Int, params: Bundle?) {}
@@ -367,6 +378,13 @@ class ListenActivity : ComponentActivity() {
                 if (SystemClock.elapsedRealtime() - baslamaZamani < 800 && !hizliTekrarYapildi) {
                     hizliTekrarYapildi = true
                     dinle()
+                } else if (kod == SpeechRecognizer.ERROR_SPEECH_TIMEOUT && uyandirmaOturumu && !konusmaDuyuldu &&
+                    bekleyenSoru == null && !kisiBekleniyor
+                ) {
+                    // "Hey Egea" yanlışlıkla tetiklendiyse (ardından kimse konuşmadı) "Anlayamadım" deyip müziği
+                    // bekletme; sessizce kapan, müzik devam etsin.
+                    logla("-", "Hey Egea", "konuşma duyulmadı, sessizce kapandı")
+                    bitir(null, false)
                 } else {
                     anlasilmadi()
                 }

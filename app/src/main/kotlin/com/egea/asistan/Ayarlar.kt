@@ -2,6 +2,7 @@ package com.egea.asistan
 
 import android.content.Context
 import android.content.SharedPreferences
+import com.egea.asistan.core.UyandirmaDedektoru
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -93,10 +94,13 @@ class Ayarlar(ctx: Context) {
         get() = sp.getBoolean("uyandirma", false)
         set(v) = sp.edit().putBoolean("uyandirma", v).apply()
 
-    /** Eşik çarpanı: küçük = daha seçici (az yanlış alarm), büyük = daha kolay tetiklenir. */
+    /**
+     * Duyarlılık çarpanı: küçük = seçici (az yanlış alarm), büyük = kolay tetiklenir (1.1 … 2.0). Eski sürümün ölçeği
+     * farklıydı; eski değer yanlış anlaşılmasın diye yeni anahtar kullanılır.
+     */
     var uyandirmaCarpan: Float
-        get() = sp.getFloat("uyandirma_carpan", 1.25f)
-        set(v) = sp.edit().putFloat("uyandirma_carpan", v).apply()
+        get() = sp.getFloat("uyandirma_carpan2", UyandirmaDedektoru.VARSAYILAN_CARPAN)
+        set(v) = sp.edit().putFloat("uyandirma_carpan2", v).apply()
 
     /** "tanima" (VOICE_RECOGNITION), "iletisim" (VOICE_COMMUNICATION, yankı giderme), "mikrofon" (MIC) */
     var uyandirmaKaynak: String

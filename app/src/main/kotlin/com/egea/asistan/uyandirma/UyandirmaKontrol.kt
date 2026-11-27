@@ -14,11 +14,17 @@ object UyandirmaKontrol {
     @Volatile
     var sonTetik: Long = 0
 
+    /** Son konuşma parçasının eşiğe oranı (1 ve altı algılanır). */
     @Volatile
-    var sonMesafe: Float = Float.NaN
+    var sonOran: Float = Float.NaN
 
+    /** Söz başına eşikler (tanı ekranı için metin). */
     @Volatile
-    var esik: Float = Float.NaN
+    var esikOzeti: String = "-"
+
+    /** Bozuk göründüğü için (diğerlerinden çok uzun) kullanılmayan öğretme kaydı sayısı. */
+    @Volatile
+    var ayiklanan: Int = 0
 
     @Volatile
     var seviyeDb: Float = -100f

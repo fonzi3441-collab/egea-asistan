@@ -85,8 +85,14 @@ Sonra **Egea Ayarlar**'da:
 **Bir kerelik öğretme (1 dakika):**
 1. **Egea Ayarlar → "Hey Egea"yı öğret** (ya da Egea ana ekranındaki "Hey Egea" yazısına dokun).
 2. Müzik kapalıyken 4 kayıt al: 2 kez "Hey Egea", 2 kez "Hey Ege". Her kayıtta "ŞİMDİ SÖYLE" yazınca normal sesle söyle.
-3. **Kaydet ve aç**. **Dene (15 sn)** ile birkaç kez söyleyip algılandığını gör.
-4. Sık yanlış tetikleniyorsa duyarlılığı sola, zor algılıyorsa sağa çek.
+3. **Kaydet ve aç**. **Dene (15 sn)** ile birkaç kez söyleyip algılandığını gör. Ekranda her sözün "eşiğe oranı"
+   yazar: **1,00 ve altı algılanır**. "Hey Egea" dediğinde 0,7–0,9 civarı, başka sözlerde 1,2 üstü görmek idealdir.
+4. Sık yanlış tetikleniyorsa duyarlılığı sola, zor algılıyorsa sağa çek (Seçici ↔ Dengeli ↔ Kolay tetiklenir).
+
+**Nasıl çalışır:** Her konuşma parçası, aynı sözün iki kaydıyla karşılaştırılır (MFCC + hız katsayıları, ses
+seviyesinden bağımsız normalizasyon, DTW). Eşik, senin iki kaydının birbirine benzerliğinden hesaplanır; yolda
+gürültü artınca eşik kendiliğinden biraz gevşer. "Hey Egea"dan sonra hiç konuşmazsan (yanlış uyanma) asistan
+"Anlayamadım" demeden sessizce kapanır ve müzik devam eder.
 
 İpuçları:
 - Kim öğrettiyse onun sesine göre çalışır; başka sürücü kullanacaksa kendi sesiyle yeniden öğretsin.
@@ -97,6 +103,9 @@ Sonra **Egea Ayarlar**'da:
   açılabilmesi için **"Üstte gösterme" izni** gerekir. İzin yoksa asistan bunu sesli söyler ve dinlemeye devam eder.
 - Teyp yeniden açıldıktan sonra Android arka planda mikrofonu kısıtlayabilir; **Egea'yı bir kez açmak** yeterli.
   Durumu Tanı ekranındaki "HEY EGEA" bölümünde görürsün.
+- 1.0.8 ve öncesinde öğrettiysen kayıtların otomatik dönüştürülür. O sürümlerde kaydın başındaki sessizlik yüzünden
+  bazen bir kayıt bozuk kaydedilebiliyordu; böyle bir kayıt artık kullanılmaz ve Tanı ekranı "yeniden öğretin" der.
+  En iyi sonuç için bir kez **yeniden öğretmen** önerilir.
 
 ## 4. Radyo ve TV (ücretsiz, uygulama reklam eklemez)
 
@@ -287,7 +296,21 @@ app/    Android uygulaması
 - `core` modülü: normalize (İ/ı, kesme işaretleri), Türkçe ek atma, yazıyla sayılar, niyet çıkarma
   (`ARA`, `NAVIGASYON`, `MEDYA`, `SARKI_CAL`, `UYGULAMA_AC`, `SAAT`, `IPTAL`), kişi ve uygulama bulanık eşleştirme,
   seçim cevabı çözme, .vcf okuyucu, M3U okuyucu, radyo/kanal adı eşleştirme ve "Hey Egea" sinyal işleme (MFCC, VAD, DTW).
-  180'den fazla JVM testi (150'den fazlası örnek cümle).
+  190'dan fazla JVM testi (150'den fazlası örnek cümle).
+- "Hey Egea" ölçümü: `scripts/uyandirma_verisi.py` espeak-ng'nin Türkçe sesleriyle (8 konuşmacı, farklı hız/perde,
+  araç içi uğultu) öğretme / "Hey Egea" / benzer söz ("Egea", "Ece", "Hey Emre"…) kayıtları üretir.
+  `core/src/test/resources/uyandirma` küçük regresyon seti CI'da her seferinde çalışır (`UyandirmaRegresyonTest`).
+  Büyük setle ayrıntılı rapor:
+
+  ```bash
+  python3 scripts/uyandirma_verisi.py --cikti /tmp/sesler20 --snr 20
+  EGEA_SES_VERISI=/tmp/sesler20 ./gradlew :core:test --tests '*UyandirmaDegerlendirme*'   # /tmp/sesler20/rapor.txt
+  ```
+
+  Bu setle (264 benzer söz) önceki yöntem benzer sözlerin %76'sını kabul ediyordu; şimdiki yöntem varsayılan
+  duyarlılıkta 20 dB gürültüde "Hey Egea"ların %100'ünü algılayıp benzer sözlerin %0,4'ünü, 10 dB (yol) gürültüde
+  %79'unu algılayıp hiçbirini kabul etmiyor. Sentetik sesler gerçek insandan az değişkendir; gerçek oranlar farklı
+  olur, ama yöntemler arasındaki fark büyüktür.
 - `scripts/duman-testi.sh` + `.github/workflows/duman-testi.yml`: her push'ta debug APK'yı Android emülatöründe
   (1280x720, 160 dpi) kurar; ekranları açar, metin komutlarını dener, radyo/TV oynatmayı kontrol eder, çökme arar.
 - CI: `.github/workflows/build.yml` — her dala push'ta ve elle tetiklemede: JDK 17, unit testler, `assembleRelease`,

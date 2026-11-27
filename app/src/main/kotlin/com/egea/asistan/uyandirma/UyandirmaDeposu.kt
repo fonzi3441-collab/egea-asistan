@@ -6,9 +6,12 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
 
-/** Kullanıcının öğrettiği "Hey Egea" örnekleri (MFCC şablonları) ve eşik tabanı. */
+/**
+ * Kullanıcının öğrettiği "Hey Egea" örnekleri: her kaydın MFCC şablonu ve hangi söz olduğu
+ * (0 = "Hey Egea", 1 = "Hey Ege"). Eşik artık kayıtlardan dedektör kurulurken hesaplanır.
+ */
 object UyandirmaDeposu {
-    data class Veri(val sablonlar: List<List<FloatArray>>, val tabanMesafe: Float)
+    class Veri(val sablonlar: List<List<FloatArray>>, val gruplar: IntArray)
 
     private fun dosya(ctx: Context) = File(ctx.filesDir, "uyandirma.json")
 
@@ -24,13 +27,19 @@ object UyandirmaDeposu {
                 FloatArray(c.length()) { k -> c.getDouble(k).toFloat() }
             }
         }
-        if (sablonlar.isEmpty()) null else Veri(sablonlar, o.optDouble("taban", 0.0).toFloat())
+        // Eski sürümün dosyasında söz bilgisi yok: öğretme ekranının sırası (2 × "Hey Egea", 2 × "Hey Ege").
+        val g = o.optJSONArray("gruplar")
+        val gruplar = if (g != null && g.length() == sablonlar.size) {
+            IntArray(g.length()) { g.getInt(it) }
+        } else {
+            UyandirmaDedektoru.varsayilanGruplar(sablonlar.size)
+        }
+        if (sablonlar.isEmpty()) null else Veri(sablonlar, gruplar)
     } catch (e: Exception) {
         null
     }
 
-    fun kaydet(ctx: Context, sablonlar: List<List<FloatArray>>): Veri {
-        val taban = UyandirmaDedektoru.tabanMesafe(sablonlar)
+    fun kaydet(ctx: Context, sablonlar: List<List<FloatArray>>, gruplar: IntArray): Veri {
         val s = JSONArray()
         for (sablon in sablonlar) {
             val cerceveler = JSONArray()
@@ -41,14 +50,16 @@ object UyandirmaDeposu {
             }
             s.put(cerceveler)
         }
-        dosya(ctx).writeText(JSONObject().put("taban", taban.toDouble()).put("sablonlar", s).toString())
-        return Veri(sablonlar, taban)
+        val g = JSONArray()
+        for (x in gruplar) g.put(x)
+        dosya(ctx).writeText(JSONObject().put("surum", 2).put("gruplar", g).put("sablonlar", s).toString())
+        return Veri(sablonlar, gruplar)
     }
 
     fun sil(ctx: Context) {
         dosya(ctx).delete()
     }
 
-    /** Eşik = şablonlar arası en büyük mesafe × çarpan (en az 1). */
-    fun esik(v: Veri, carpan: Float): Float = maxOf(v.tabanMesafe * carpan, 1f)
+    /** Kayıtlı örneklerden, verilen duyarlılıkla dedektör. */
+    fun dedektor(v: Veri, carpan: Float): UyandirmaDedektoru = UyandirmaDedektoru(v.sablonlar, v.gruplar, carpan)
 }

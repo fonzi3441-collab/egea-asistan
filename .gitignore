@@ -16,3 +16,4 @@ build/
 # Local config
 local.properties
 .DS_Store
+__pycache__/

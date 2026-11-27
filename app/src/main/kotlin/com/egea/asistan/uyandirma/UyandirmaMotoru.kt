@@ -11,7 +11,6 @@ import android.os.Looper
 import android.util.Log
 import com.egea.asistan.AsistanApp
 import com.egea.asistan.Izinler
-import com.egea.asistan.core.UyandirmaDedektoru
 
 /**
  * Arka planda mikrofonu dinler (16 kHz, internetsiz) ve öğretilen "Hey Egea" örneğine benzeyen bir söz
@@ -99,9 +98,9 @@ class UyandirmaMotoru(private val ctx: Context, private val tetiklendi: () -> Un
             calis = false
             return
         }
-        val esik = UyandirmaDeposu.esik(veri, AsistanApp.ornek.ayarlar.uyandirmaCarpan)
-        UyandirmaKontrol.esik = esik
-        val dedektor = UyandirmaDedektoru(veri.sablonlar, esik)
+        val dedektor = UyandirmaDeposu.dedektor(veri, AsistanApp.ornek.ayarlar.uyandirmaCarpan)
+        UyandirmaKontrol.esikOzeti = dedektor.esikler.joinToString(" / ") { String.format(java.util.Locale.ROOT, "%.2f", it) }
+        UyandirmaKontrol.ayiklanan = dedektor.ayiklananSayisi
         val tampon = ShortArray(1600)
         while (calis) {
             if (duraklatildi) {
@@ -153,12 +152,12 @@ class UyandirmaMotoru(private val ctx: Context, private val tetiklendi: () -> Un
                             sifir = 0
                         }
                         val bulundu = dedektor.isle(tampon, n)
-                        UyandirmaKontrol.sonMesafe = dedektor.sonMesafe
+                        UyandirmaKontrol.sonOran = dedektor.sonOran
                         UyandirmaKontrol.seviyeDb = dedektor.sonSeviyeDb
                         if (bulundu) {
                             UyandirmaKontrol.sonTetik = System.currentTimeMillis()
                             UyandirmaKontrol.tetikSayisi++
-                            Log.i(AsistanApp.ETIKET, "Hey Egea algılandı (mesafe ${dedektor.sonMesafe}, eşik $esik)")
+                            Log.i(AsistanApp.ETIKET, "Hey Egea algılandı (eşiğe oran ${dedektor.sonOran})")
                             duraklatildi = true
                             ana.post(tetiklendi)
                             break

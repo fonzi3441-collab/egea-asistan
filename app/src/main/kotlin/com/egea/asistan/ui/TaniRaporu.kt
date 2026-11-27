@@ -161,9 +161,14 @@ class TaniRaporu(private val ctx: Context) {
 
         baslik("HEY EGEA (uyandırma)")
         val uv = UyandirmaDeposu.yukle(ctx)
-        satir("Ayar: ${if (AsistanApp.ornek.ayarlar.uyandirma) "açık" else "kapalı"} • örnek: ${uv?.sablonlar?.size ?: 0} • kaynak: ${AsistanApp.ornek.ayarlar.uyandirmaKaynak}")
+        val egeaSayi = uv?.gruplar?.count { it == 0 } ?: 0
+        val egeSayi = uv?.gruplar?.count { it == 1 } ?: 0
+        satir("Ayar: ${if (AsistanApp.ornek.ayarlar.uyandirma) "açık" else "kapalı"} • örnek: ${uv?.sablonlar?.size ?: 0} ($egeaSayi × Hey Egea, $egeSayi × Hey Ege) • kaynak: ${AsistanApp.ornek.ayarlar.uyandirmaKaynak}")
         satir("Motor: ${UyandirmaKontrol.durum}")
-        satir("Eşik: ${"%.1f".format(UyandirmaKontrol.esik)} (taban ${"%.1f".format(uv?.tabanMesafe ?: 0f)} × ${"%.2f".format(AsistanApp.ornek.ayarlar.uyandirmaCarpan)}) • son söz mesafesi: ${"%.1f".format(UyandirmaKontrol.sonMesafe)}")
+        if (UyandirmaKontrol.ayiklanan > 0) {
+            satir("⚠ ${UyandirmaKontrol.ayiklanan} öğretme kaydı bozuk göründüğü için kullanılmıyor — “Hey Egea”yı yeniden öğretin.")
+        }
+        satir("Duyarlılık ×${"%.2f".format(AsistanApp.ornek.ayarlar.uyandirmaCarpan)} • eşikler: ${UyandirmaKontrol.esikOzeti} • son söz: eşiğe oran ${"%.2f".format(UyandirmaKontrol.sonOran)} (1,00 ve altı algılanır)")
         val sonTetik = if (UyandirmaKontrol.sonTetik > 0) SimpleDateFormat("HH:mm:ss", Locale.ROOT).format(Date(UyandirmaKontrol.sonTetik)) else "-"
         satir("Algılama sayısı: ${UyandirmaKontrol.tetikSayisi} • son: $sonTetik • seviye: ${"%.0f".format(UyandirmaKontrol.seviyeDb)} dB")
         UyandirmaKontrol.sonSorun?.let { satir("⚠ Son sorun: $it") }

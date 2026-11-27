@@ -126,6 +126,25 @@ class UyandirmaTest {
     }
 
     @Test
+    fun basindakiSayisalSessizlikSablonuBozmaz() {
+        // AudioRecord kaydın başında sıfır verebilir. Eskiden gürültü tabanı ilk çerçeveden (-100 dB) alınıyor,
+        // ardından gelen gürültü "konuşma" sanılıyor ve şablon kaydın tamamı oluyordu.
+        val pcm = ShortArray(3200) + Sentez.kelime(Sentez.HEY_EGEA)
+        val s = UyandirmaDedektoru.sablonCikar(pcm)
+        assertNotNull(s)
+        assertTrue("çerçeve sayısı ${s!!.size}", s.size in 55..110)
+    }
+
+    @Test
+    fun bozukUzunSablonAyiklanir() {
+        assertEquals(listOf(0, 1, 3), UyandirmaDedektoru.saglamSablonlar(listOf(84, 93, 147, 88)))
+        assertEquals(listOf(0, 1, 2, 3), UyandirmaDedektoru.saglamSablonlar(listOf(70, 100, 82, 95)))
+        assertEquals(listOf(0, 1, 3), UyandirmaDedektoru.saglamSablonlar(listOf(80, 85, 300, 90)))
+        // En az iki şablon kalır.
+        assertEquals(listOf(0, 1), UyandirmaDedektoru.saglamSablonlar(listOf(80, 300)))
+    }
+
+    @Test
     fun ayniKelimeYakinFarkliKelimeUzak() {
         val a = UyandirmaDedektoru.sablonCikar(Sentez.kelime(Sentez.HEY_EGEA, 1.0, 1))!!
         val b = UyandirmaDedektoru.sablonCikar(Sentez.kelime(Sentez.HEY_EGEA, 1.15, 2))!!
@@ -140,8 +159,8 @@ class UyandirmaTest {
         val sablonlar = listOf(0.9, 1.0, 1.1).mapIndexed { i, u ->
             UyandirmaDedektoru.sablonCikar(Sentez.kelime(Sentez.HEY_EGEA, u, 10 + i))!!
         }
-        val taban = UyandirmaDedektoru.tabanMesafe(sablonlar)
-        val dedektor = UyandirmaDedektoru(sablonlar, maxOf(taban * 1.3f, 1f))
+        // Üç kayıt da aynı söz (grup 0).
+        val dedektor = UyandirmaDedektoru(sablonlar, IntArray(sablonlar.size))
 
         fun besle(pcm: ShortArray): Boolean {
             var bulundu = false
@@ -153,8 +172,8 @@ class UyandirmaTest {
             }
             return bulundu
         }
-        assertTrue("uyandırma kelimesi algılanmalı (mesafe ${dedektor.sonMesafe}, eşik ${dedektor.esik})",
+        assertTrue("uyandırma kelimesi algılanmalı (oran ${dedektor.sonOran}, eşik ${dedektor.esikler.toList()})",
             besle(Sentez.kelime(Sentez.HEY_EGEA, 1.05, 42)))
-        assertTrue("başka kelime algılanmamalı (mesafe ${dedektor.sonMesafe})", !besle(Sentez.kelime(Sentez.BASKA, 1.0, 43)))
+        assertTrue("başka kelime algılanmamalı (oran ${dedektor.sonOran})", !besle(Sentez.kelime(Sentez.BASKA, 1.0, 43)))
     }
 }
