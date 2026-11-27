@@ -74,6 +74,15 @@ data class Istasyon(
             )
         }
 
+        /** Oynatıcıdaki öğeden istasyon (son dinleneni kaydetmek için; ağ ya da disk gerektirmez). */
+        fun ogeden(oge: MediaItem): Istasyon? {
+            val uri = (oge.requestMetadata.mediaUri ?: oge.localConfiguration?.uri)?.toString() ?: return null
+            val m = oge.mediaMetadata
+            val ad = (m.station ?: m.title)?.toString()?.takeIf { it.isNotBlank() } ?: return null
+            val etiket = m.artist?.toString()?.takeIf { it != "Canlı radyo" }.orEmpty()
+            return Istasyon(oge.mediaId.ifBlank { uri }, ad, uri, m.artworkUri?.toString(), etiket, "", "", 0)
+        }
+
         /** Radio Browser API kaydından. */
         fun radioBrowserdan(o: JSONObject): Istasyon? {
             // Son denetimde çalışmayan yayınlar (hidebroken'a ek, istemci tarafında da) alınmaz.

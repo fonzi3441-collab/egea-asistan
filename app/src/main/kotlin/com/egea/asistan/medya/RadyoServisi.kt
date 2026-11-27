@@ -103,6 +103,12 @@ class RadyoServisi : MediaSessionService() {
                 }
             }
 
+            // "Sonraki/önceki" (ses, direksiyon tuşu, bildirim) ile değişen istasyon da "son dinlenen" olsun:
+            // ana sayfadaki "Son: …" ve açılışta çalma bunu kullanır.
+            override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
+                mediaItem?.let { Istasyon.ogeden(it) }?.let { RadyoKatalogu.sonIstasyonKaydet(it) }
+            }
+
             override fun onIsPlayingChanged(isPlaying: Boolean) {
                 if (isPlaying) {
                     RadyoDurumu.hata = null
