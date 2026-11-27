@@ -100,6 +100,7 @@ class ListenActivity : ComponentActivity() {
         // Hey Egea motoru mikrofonu hemen bıraksın (konuşma tanıma kullanacak).
         UyandirmaKontrol.duraklat()
         if (BuildConfig.DEBUG && intent.getBooleanExtra(TEST_KURULUM, false)) app.ayarlar.kurulumTamam = true
+        if (BuildConfig.DEBUG && intent.getBooleanExtra(TEST_ACILIS_RADYO, false)) app.ayarlar.acilistaRadyo = true
         if (!app.ayarlar.kurulumTamam) {
             startActivity(Intent(this, SetupActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
             finish()
@@ -624,5 +625,6 @@ class ListenActivity : ComponentActivity() {
         var sonAcilis = 0L
         const val TEST_METIN = "test_metin"
         const val TEST_KURULUM = "test_kurulum_tamam"
+        const val TEST_ACILIS_RADYO = "test_acilis_radyo"
     }
 }

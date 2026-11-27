@@ -2,6 +2,11 @@ package com.egea.asistan.medya
 
 import android.app.PendingIntent
 import android.content.Intent
+import android.net.ConnectivityManager
+import android.net.Network
+import android.os.Handler
+import android.os.Looper
+import android.os.SystemClock
 import android.util.Log
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
@@ -18,14 +23,50 @@ import com.egea.asistan.BuildConfig
 import com.egea.asistan.ui.AnaEkranActivity
 import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
+import kotlin.math.min
 
 /**
  * Arka planda radyo çalan medya servisi (Media3). Bildirim, direksiyon medya tuşları ve
  * "sonraki/önceki/durdur" sesli komutları bu oturum üzerinden çalışır. Ses odağını ExoPlayer yönetir:
  * asistan dinlerken radyo durur, bitince kaldığı yerden devam eder.
+ *
+ * Bağlantı koparsa (tünel, zayıf çekim, teyp açılırken hotspot henüz bağlanmamış) radyo susup kalmaz: kullanıcı
+ * durdurmadıysa 2, 4, 6 … 30 sn arayla, en çok 5 dakika yeniden bağlanır; ağ geri gelince hemen dener.
  */
 class RadyoServisi : MediaSessionService() {
     private var oturum: MediaSession? = null
+    private val ana = Handler(Looper.getMainLooper())
+    private var denemeSayisi = 0
+    private var denemeBaslangici = 0L
+    private var agDinleyici: ConnectivityManager.NetworkCallback? = null
+    private val yenidenDene = Runnable { yenidenBaglan("zamanlayıcı") }
+
+    /** Oynatıcı hatada, kullanıcı hâlâ çalmak istiyorsa yeniden hazırlar. */
+    private fun yenidenBaglan(neden: String) {
+        val p = oturum?.player ?: return
+        if (p.playerError == null || !p.playWhenReady || p.mediaItemCount == 0) return
+        Log.i(AsistanApp.ETIKET, "Radyo yeniden bağlanıyor ($neden, deneme $denemeSayisi)")
+        p.prepare()
+    }
+
+    private fun yenidenDenemePlanla() {
+        val simdi = SystemClock.elapsedRealtime()
+        if (denemeBaslangici == 0L) denemeBaslangici = simdi
+        if (simdi - denemeBaslangici > YENIDEN_DENEME_SURESI_MS) {
+            Log.w(AsistanApp.ETIKET, "Radyo: 5 dakikadır bağlanılamadı, yeniden deneme bırakıldı")
+            return
+        }
+        denemeSayisi++
+        ana.removeCallbacks(yenidenDene)
+        ana.postDelayed(yenidenDene, min(30_000L, 2_000L * denemeSayisi))
+    }
+
+    private fun agHatasi(e: PlaybackException): Boolean = e.errorCode in setOf(
+        PlaybackException.ERROR_CODE_IO_UNSPECIFIED,
+        PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED,
+        PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_TIMEOUT,
+        PlaybackException.ERROR_CODE_TIMEOUT
+    )
 
     override fun onCreate() {
         super.onCreate()
@@ -52,10 +93,23 @@ class RadyoServisi : MediaSessionService() {
                 val ad = oynatici.currentMediaItem?.mediaMetadata?.title
                 RadyoDurumu.hata = "$ad: ${error.errorCodeName}"
                 Log.w(AsistanApp.ETIKET, "Radyo hatası ($ad): ${error.errorCodeName}", error)
+                when {
+                    // Canlı HLS yayında geride kalındı: canlı noktaya atla.
+                    error.errorCode == PlaybackException.ERROR_CODE_BEHIND_LIVE_WINDOW -> {
+                        oynatici.seekToDefaultPosition()
+                        oynatici.prepare()
+                    }
+                    agHatasi(error) && oynatici.playWhenReady -> yenidenDenemePlanla()
+                }
             }
 
             override fun onIsPlayingChanged(isPlaying: Boolean) {
-                if (isPlaying) RadyoDurumu.hata = null
+                if (isPlaying) {
+                    RadyoDurumu.hata = null
+                    denemeSayisi = 0
+                    denemeBaslangici = 0L
+                    ana.removeCallbacks(yenidenDene)
+                }
             }
         })
         val ac = PendingIntent.getActivity(
@@ -81,6 +135,28 @@ class RadyoServisi : MediaSessionService() {
                 }
             })
             .build()
+        agiDinle()
+    }
+
+    /** Ağ geri gelince (hotspot bağlandı, tünelden çıkıldı) beklemeden yeniden bağlan. */
+    private fun agiDinle() {
+        try {
+            val cm = getSystemService(ConnectivityManager::class.java) ?: return
+            val cb = object : ConnectivityManager.NetworkCallback() {
+                override fun onAvailable(network: Network) {
+                    ana.post {
+                        if (denemeBaslangici != 0L) {
+                            ana.removeCallbacks(yenidenDene)
+                            yenidenBaglan("ağ geldi")
+                        }
+                    }
+                }
+            }
+            cm.registerDefaultNetworkCallback(cb)
+            agDinleyici = cb
+        } catch (e: Exception) {
+            Log.w(AsistanApp.ETIKET, "Ağ dinlenemiyor", e)
+        }
     }
 
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? = oturum
@@ -91,12 +167,25 @@ class RadyoServisi : MediaSessionService() {
     }
 
     override fun onDestroy() {
+        ana.removeCallbacksAndMessages(null)
+        agDinleyici?.let {
+            try {
+                getSystemService(ConnectivityManager::class.java)?.unregisterNetworkCallback(it)
+            } catch (e: Exception) {
+                // yok say
+            }
+        }
+        agDinleyici = null
         oturum?.let {
             it.player.release()
             it.release()
         }
         oturum = null
         super.onDestroy()
+    }
+
+    companion object {
+        private const val YENIDEN_DENEME_SURESI_MS = 5 * 60_000L
     }
 }
 

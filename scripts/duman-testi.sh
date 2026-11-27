@@ -123,6 +123,13 @@ komut "Tarkan Şımarık aç"
 komut "iptal"
 komut "bla bla bla" 12
 
+echo "== Açılışta son radyo (hızlı açılış yayını; ayar debug kancasıyla açılır)"
+a shell "am start -n $PKG/.ui.ListenActivity --ez test_kurulum_tamam true --ez test_acilis_radyo true --es test_metin \"saat kaç\"" | grep -E "Error|Exception" || true
+sleep 6
+a shell am broadcast -a android.intent.action.QUICKBOOT_POWERON -n $PKG/.servis.AcilisAlicisi | tail -1
+sleep 12
+medya_durumu
+
 echo "== Hey Egea öğretme ekranı (ana sayfadan)"
 a shell am start -n $PKG/.ui.AnaEkranActivity >/dev/null
 sleep 3

@@ -112,7 +112,15 @@ gürültü artınca eşik kendiliğinden biraz gevşer. "Hey Egea"dan sonra hiç
 **Radyo:** Türkiye'deki ~700 internet radyosu ([Radio Browser](https://www.radio-browser.info), açık ve ücretsiz
 veritabanı). Egea → **Radyo**: arama, tür çipleri (Pop, Türkçe, Rock, Arabesk, Türkü, Haber…), ★ favoriler.
 Radyo arka planda çalar; bildirim, direksiyon medya tuşları ve "sonraki/önceki/durdur" komutları çalışır.
-Asistan dinlerken radyo otomatik durur, bitince devam eder.
+Asistan dinlerken radyo otomatik durur, bitince devam eder. Liste temizlenir: çalışmayan yayınlar ve aynı
+istasyonun kopyaları ("JOY Türk" / "JOY Türk Turkey") gösterilmez.
+
+**Bağlantı koparsa** (tünel, zayıf çekim) radyo susup kalmaz: sen durdurmadıysan 2–30 sn arayla, en çok 5 dakika
+yeniden bağlanır; internet geri gelince hemen dener.
+
+**Araç radyosu gibi:** Ayarlar → Radyo ve TV → **"Teyp açılınca son dinlenen radyoyu çal"** açılırsa, araç çalışıp
+teyp açıldığında son istasyon kendiliğinden başlar (telefonun hotspot'u geç bağlansa da bağlanınca çalar).
+Varsayılan kapalıdır.
 
 **TV:** Herkese açık, ücretsiz yayınlar (varsayılan liste: [iptv-org](https://github.com/iptv-org/iptv) Türkiye
 listesi — TRT 1, TRT Haber, Kanal D, ATV, Star, NOW, TV8, Habertürk…). Egea → **TV** → kanala dokun, tam ekran açılır;

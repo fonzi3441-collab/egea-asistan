@@ -4,6 +4,7 @@ import android.net.Uri
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.MimeTypes
+import com.egea.asistan.core.RadyoAdi
 import com.egea.asistan.core.TurkceMetin
 import org.json.JSONObject
 
@@ -63,7 +64,7 @@ data class Istasyon(
             if (url.isBlank()) return null
             return Istasyon(
                 o.optString("id").ifBlank { url },
-                o.optString("ad").ifBlank { url },
+                RadyoAdi.sadelestir(o.optString("ad").ifBlank { url }),
                 url,
                 o.optString("logo").takeIf { it.isNotBlank() },
                 o.optString("etiket"),
@@ -75,8 +76,10 @@ data class Istasyon(
 
         /** Radio Browser API kaydından. */
         fun radioBrowserdan(o: JSONObject): Istasyon? {
+            // Son denetimde çalışmayan yayınlar (hidebroken'a ek, istemci tarafında da) alınmaz.
+            if (o.optInt("lastcheckok", 1) == 0) return null
             val url = o.optString("url_resolved").ifBlank { o.optString("url") }.trim()
-            val ad = o.optString("name").trim()
+            val ad = RadyoAdi.sadelestir(o.optString("name"))
             if (url.isBlank() || ad.isBlank()) return null
             if (!url.startsWith("http://") && !url.startsWith("https://")) return null
             return Istasyon(

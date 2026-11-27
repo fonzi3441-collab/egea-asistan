@@ -5,7 +5,7 @@ import android.util.Log
 import com.egea.asistan.AsistanApp
 import com.egea.asistan.BuildConfig
 import com.egea.asistan.core.AdEslestirici
-import com.egea.asistan.core.TurkceMetin
+import com.egea.asistan.core.RadyoAdi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
@@ -53,12 +53,7 @@ object RadyoKatalogu {
             ?: return@withContext bellek
         try {
             val dizi = JSONArray(metin)
-            val gorulen = HashSet<String>()
-            val yeni = ArrayList<Istasyon>()
-            for (i in 0 until dizi.length()) {
-                val ist = Istasyon.radioBrowserdan(dizi.getJSONObject(i)) ?: continue
-                if (gorulen.add(TurkceMetin.katla(ist.ad))) yeni += ist
-            }
+            val yeni = kopyalariAt((0 until dizi.length()).mapNotNull { Istasyon.radioBrowserdan(dizi.getJSONObject(it)) })
             if (yeni.isNotEmpty()) {
                 bellek = yeni
                 sonGuncelleme = System.currentTimeMillis()
@@ -79,9 +74,26 @@ object RadyoKatalogu {
             ?: return@withContext emptyList()
         try {
             val dizi = JSONArray(metin)
-            (0 until dizi.length()).mapNotNull { Istasyon.radioBrowserdan(dizi.getJSONObject(it)) }
+            kopyalariAt((0 until dizi.length()).mapNotNull { Istasyon.radioBrowserdan(dizi.getJSONObject(it)) })
         } catch (e: Exception) {
             emptyList()
+        }
+    }
+
+    /**
+     * Aynı istasyonun kopyalarını atar: sadeleştirilmiş ad ("JOY Türk" = "JOY Türk Turkey") ya da aynı yayın adresi.
+     * Liste dinlenme sayısına göre sıralı geldiği için en popüler kopya kalır.
+     */
+    fun kopyalariAt(liste: List<Istasyon>): List<Istasyon> {
+        val adlar = HashSet<String>()
+        val adresler = HashSet<String>()
+        return liste.filter { ist ->
+            val a = RadyoAdi.anahtar(ist.ad)
+            val u = RadyoAdi.adresAnahtari(ist.url)
+            val yeni = a !in adlar && u !in adresler
+            adlar += a
+            adresler += u
+            yeni
         }
     }
 
@@ -111,7 +123,7 @@ object RadyoKatalogu {
             if (!f.exists()) return
             val o = JSONObject(f.readText())
             val dizi = o.getJSONArray("liste")
-            bellek = (0 until dizi.length()).mapNotNull { Istasyon.jsondan(dizi.getJSONObject(it)) }
+            bellek = kopyalariAt((0 until dizi.length()).mapNotNull { Istasyon.jsondan(dizi.getJSONObject(it)) })
             sonGuncelleme = o.optLong("zaman")
         } catch (e: Exception) {
             Log.w(AsistanApp.ETIKET, "Radyo önbelleği okunamadı", e)

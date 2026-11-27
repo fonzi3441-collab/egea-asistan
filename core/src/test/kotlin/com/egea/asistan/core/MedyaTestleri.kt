@@ -177,3 +177,37 @@ class UyandirmaTest {
         assertTrue("başka kelime algılanmamalı (oran ${dedektor.sonOran})", !besle(Sentez.kelime(Sentez.BASKA, 1.0, 43)))
     }
 }
+
+class RadyoAdiTest {
+    @Test
+    fun ulkeEkiAtilir() {
+        assertEquals("JOY Türk", RadyoAdi.sadelestir("JOY Türk Turkey"))
+        assertEquals("Kral FM", RadyoAdi.sadelestir("Kral FM (Türkiye)"))
+        assertEquals("Power Türk", RadyoAdi.sadelestir("Power Türk - Turkey"))
+        assertEquals("Power", RadyoAdi.sadelestir("Power [TR]"))
+        assertEquals("Virgin Radio", RadyoAdi.sadelestir("Virgin Radio Türkiye"))
+        assertEquals("Süper FM", RadyoAdi.sadelestir("  Süper   FM  "))
+    }
+
+    @Test
+    fun anlamliAdBozulmaz() {
+        // Geriye yalnız genel bir sözcük kalacaksa ülke sözcüğü atılmaz.
+        assertEquals("Radyo Türkiye", RadyoAdi.sadelestir("Radyo Türkiye"))
+        assertEquals("TRT Türkü", RadyoAdi.sadelestir("TRT Türkü"))
+        assertEquals("Number One Türk", RadyoAdi.sadelestir("Number One Türk"))
+        assertEquals("Turkey", RadyoAdi.sadelestir("Turkey"))
+        assertEquals("Radio (Live)", RadyoAdi.sadelestir("Radio (Live)"))
+    }
+
+    @Test
+    fun kopyaAnahtari() {
+        assertEquals(RadyoAdi.anahtar("JOY Türk"), RadyoAdi.anahtar("Joy Türk Turkey"))
+        assertEquals(RadyoAdi.anahtar("Kral FM"), RadyoAdi.anahtar("KRAL FM (Türkiye)"))
+        assertTrue(RadyoAdi.anahtar("Kral FM") != RadyoAdi.anahtar("Kral Pop"))
+        assertTrue(RadyoAdi.anahtar("Joy FM") != RadyoAdi.anahtar("Joy Türk"))
+        assertEquals(
+            RadyoAdi.adresAnahtari("https://www.ornek.com/kral/"),
+            RadyoAdi.adresAnahtari("http://ornek.com/KRAL")
+        )
+    }
+}

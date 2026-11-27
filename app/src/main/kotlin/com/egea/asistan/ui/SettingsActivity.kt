@@ -155,6 +155,7 @@ class SettingsActivity : ComponentActivity() {
             }
             yazi("TV kanal listesi (M3U adresi). Boş bırakılırsa açık yayınlardan oluşan varsayılan liste: ${TvKatalogu.VARSAYILAN_LISTE}", 15f, Renk.SOLUK)
             girdi("https://…/liste.m3u", ayarlar.tvListesi, InputType.TYPE_TEXT_VARIATION_URI or InputType.TYPE_CLASS_TEXT) { ayarlar.tvListesi = it }
+            anahtar("Teyp açılınca son dinlenen radyoyu çal (araç radyosu gibi)", ayarlar.acilistaRadyo) { ayarlar.acilistaRadyo = it }
             anahtar("Araç hareket halindeyken TV görüntüsünü gizle (önerilir)", ayarlar.surusKilidi) { ayarlar.surusKilidi = it }
             if (!Izinler.konum(this@SettingsActivity)) {
                 buton("Sürüş kilidi için konum izni ver", Renk.TURUNCU) {

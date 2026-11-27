@@ -130,6 +130,11 @@ class Ayarlar(ctx: Context) {
         get() = yazi("son_kanal")
         set(v) = yaziKaydet("son_kanal", v)
 
+    /** Teyp açılınca (araç çalışınca) son dinlenen radyoyu çalmaya başla — araç radyosu gibi. */
+    var acilistaRadyo: Boolean
+        get() = sp.getBoolean("acilista_radyo", false)
+        set(v) = sp.edit().putBoolean("acilista_radyo", v).apply()
+
     /** Araç hareket halindeyken TV görüntüsünü gizle (ses devam eder). */
     var surusKilidi: Boolean
         get() = sp.getBoolean("surus_kilidi", true)
