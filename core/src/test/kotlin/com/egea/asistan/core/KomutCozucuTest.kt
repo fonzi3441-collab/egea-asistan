@@ -13,7 +13,7 @@ import org.junit.runners.Parameterized
  *  NAV:adres · NAV:EV · NAV:IS · HARITA:adres (rota değil, haritada arama)
  *  MEDYA:EYLEM · MEDYA:SES_AYARLA=15 · MEDYA:SES_AYARLA=%50 · MEDYA:SES_KIS/AZ
  *  SARKI:sorgu · SARKI:sorgu@UYGULAMA · ARAMA:sorgu · ARAMA:sorgu@UYGULAMA
- *  UYGULAMA:ad · SAAT · TARIH · IPTAL · BILINMIYOR
+ *  UYGULAMA:ad · RADYO · RADYO:istasyon · TV · TV:kanal · SAAT · TARIH · IPTAL · BILINMIYOR
  */
 @RunWith(Parameterized::class)
 class KomutCozucuTest(private val cumle: String, private val beklenen: String, @Suppress("unused") private val ad: String) {
@@ -151,13 +151,41 @@ class KomutCozucuTest(private val cumle: String, private val beklenen: String, @
             "Youtube aç" to "UYGULAMA:youtube",
             "Spotify aç" to "UYGULAMA:spotify",
             "haritayı aç" to "UYGULAMA:harita",
-            "radyoyu aç" to "UYGULAMA:radyo",
+            "radyo uygulamasını aç" to "UYGULAMA:radyo",
             "Waze'i aç" to "UYGULAMA:waze",
             "müzik uygulamasını aç" to "UYGULAMA:müzik",
             "ayarları aç" to "UYGULAMA:ayarlar",
             "navigasyonu aç" to "UYGULAMA:navigasyon",
             "telefonu aç" to "UYGULAMA:telefon",
             "Chrome'u aç" to "UYGULAMA:chrome",
+
+            // ---------------- Radyo
+            "radyo aç" to "RADYO",
+            "radyoyu aç" to "RADYO",
+            "radyo" to "RADYO",
+            "radyo dinlemek istiyorum" to "RADYO",
+            "internet radyosu aç" to "RADYO",
+            "Power FM aç" to "RADYO:power fm",
+            "Kral FM'i aç" to "RADYO:kral fm",
+            "radyoda Joy Türk aç" to "RADYO:joy türk",
+            "Virgin Radio çal" to "RADYO:virgin radio",
+            "Radyo Fenomen dinle" to "RADYO:fenomen",
+            "radyoyu kapat" to "MEDYA:DURDUR",
+            "radyoyu değiştir" to "MEDYA:SONRAKI",
+
+            // ---------------- Televizyon
+            "televizyon aç" to "TV",
+            "televizyonu aç" to "TV",
+            "TV'yi aç" to "TV",
+            "televizyon" to "TV",
+            "Show TV aç" to "TV:show tv",
+            "Kanal D'yi aç" to "TV:kanal d",
+            "TRT 1 izle" to "TV:trt 1",
+            "haber kanalını aç" to "TV:haber",
+            "televizyonda TRT Haber aç" to "TV:trt haber",
+            "televizyonu kapat" to "MEDYA:DURDUR",
+            "sonraki kanal" to "MEDYA:SONRAKI",
+            "TRT 1 aç" to "SARKI:trt 1",
 
             // ---------------- Saat, iptal
             "saat kaç" to "SAAT",
@@ -221,6 +249,10 @@ class KomutCozucuTest(private val cumle: String, private val beklenen: String, @
                 n is Niyet.SarkiCal && n.sorgu == sorgu && n.uygulama == uyg && n.sadeceAra == ara
             }
             b.startsWith("UYGULAMA:") -> n is Niyet.UygulamaAc && n.ad == b.removePrefix("UYGULAMA:")
+            b == "RADYO" -> n is Niyet.Radyo && n.istasyon == null
+            b.startsWith("RADYO:") -> n is Niyet.Radyo && n.istasyon == b.removePrefix("RADYO:")
+            b == "TV" -> n is Niyet.Televizyon && n.kanal == null
+            b.startsWith("TV:") -> n is Niyet.Televizyon && n.kanal == b.removePrefix("TV:")
             b == "SAAT" -> n is Niyet.Saat && !n.tarih
             b == "TARIH" -> n is Niyet.Saat && n.tarih
             b == "IPTAL" -> n == Niyet.Iptal

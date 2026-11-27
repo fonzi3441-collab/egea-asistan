@@ -54,6 +54,7 @@ class ListenActivity : ComponentActivity() {
     private var kisiBekleniyor = false
     private var bitiyor = false
     private var yedekAcik = false
+    private var izinIsteniyor = false
     private var yedekKullan = false
     private var baslamaZamani = 0L
     private var sonMetin = ""
@@ -76,6 +77,7 @@ class ListenActivity : ComponentActivity() {
     }
 
     private val mikrofonIzni = registerForActivityResult(ActivityResultContracts.RequestPermission()) { verildi ->
+        izinIsteniyor = false
         if (verildi) {
             dinle()
         } else {
@@ -120,7 +122,7 @@ class ListenActivity : ComponentActivity() {
     override fun onStop() {
         super.onStop()
         // Başka bir ekran öne geldiyse (ana ekran tuşu vb.) dinlemeyi bırak.
-        if (!isFinishing && !bitiyor && !yedekAcik && !isChangingConfigurations) {
+        if (!isFinishing && !bitiyor && !yedekAcik && !izinIsteniyor && !isChangingConfigurations) {
             iptal(sessiz = true)
         }
     }
@@ -218,10 +220,15 @@ class ListenActivity : ComponentActivity() {
             return
         }
         if (!Izinler.mikrofon(this)) {
-            mikrofonIzni.launch(Manifest.permission.RECORD_AUDIO)
+            mikrofonIzniIste()
             return
         }
         dinle()
+    }
+
+    private fun mikrofonIzniIste() {
+        izinIsteniyor = true
+        mikrofonIzni.launch(Manifest.permission.RECORD_AUDIO)
     }
 
     private fun tanimaIntenti(yedek: Boolean) = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
@@ -331,7 +338,7 @@ class ListenActivity : ComponentActivity() {
                     anlasilmadi()
                 }
             }
-            SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS -> mikrofonIzni.launch(Manifest.permission.RECORD_AUDIO)
+            SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS -> mikrofonIzniIste()
             SpeechRecognizer.ERROR_RECOGNIZER_BUSY, SpeechRecognizer.ERROR_CLIENT -> {
                 if (!hizliTekrarYapildi) {
                     hizliTekrarYapildi = true

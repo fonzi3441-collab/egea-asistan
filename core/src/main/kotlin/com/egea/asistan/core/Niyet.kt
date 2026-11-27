@@ -1,6 +1,6 @@
 package com.egea.asistan.core
 
-enum class NiyetTuru { ARA, NAVIGASYON, MEDYA, SARKI_CAL, UYGULAMA_AC, SAAT, IPTAL, BILINMIYOR }
+enum class NiyetTuru { ARA, NAVIGASYON, MEDYA, SARKI_CAL, UYGULAMA_AC, RADYO, TV, SAAT, IPTAL, BILINMIYOR }
 
 enum class MedyaEylemi { SONRAKI, ONCEKI, DURDUR, DEVAM, SES_AC, SES_KIS, SES_AYARLA, SES_KAPAT, SES_MAKS }
 
@@ -45,6 +45,12 @@ sealed class Niyet(val tur: NiyetTuru) {
     data class UygulamaAc(val ad: String, val gorunen: String, val sarkiOlabilir: Boolean = false) :
         Niyet(NiyetTuru.UYGULAMA_AC)
 
+    /** İnternet radyosu. [istasyon] null ise son çalan (yoksa en popüler) istasyon. */
+    data class Radyo(val istasyon: String? = null, val gorunen: String? = null) : Niyet(NiyetTuru.RADYO)
+
+    /** Canlı TV. [kanal] null ise son izlenen kanal / kanal listesi. */
+    data class Televizyon(val kanal: String? = null, val gorunen: String? = null) : Niyet(NiyetTuru.TV)
+
     data class Saat(val tarih: Boolean = false) : Niyet(NiyetTuru.SAAT)
 
     data object Iptal : Niyet(NiyetTuru.IPTAL)
@@ -70,6 +76,8 @@ sealed class Niyet(val tur: NiyetTuru) {
             (if (miktar != Miktar.NORMAL) " $miktar" else "") + ")"
         is SarkiCal -> "SARKI_CAL($gorunen" + (uygulama?.let { " @$it" } ?: "") + (if (sadeceAra) " ara" else "") + ")"
         is UygulamaAc -> "UYGULAMA_AC($gorunen)"
+        is Radyo -> if (istasyon == null) "RADYO" else "RADYO(${gorunen ?: istasyon})"
+        is Televizyon -> if (kanal == null) "TV" else "TV(${gorunen ?: kanal})"
         is Saat -> if (tarih) "SAAT(tarih)" else "SAAT"
         Iptal -> "IPTAL"
         is Bilinmiyor -> "BILINMIYOR"

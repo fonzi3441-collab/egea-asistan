@@ -133,6 +133,7 @@ object KomutCozucu {
         "yap", "ver", "kaldığı", "yerden", "bakalım", "parçaya", "şarkılar", "sıradakini"
     )
     private val RADYO = setOf("radyo", "radyoyu", "radyoda")
+    private val TV_NESNE = setOf("televizyon", "televizyonu", "tv", "tv'yi", "tvyi", "tv'yu")
 
     private fun medyaAnahtari(k: String): MedyaEylemi? = when {
         k.startsWith("durdur") || k.startsWith("duraklat") || k == "beklet" || k == "pause" || k == "sustur" -> MedyaEylemi.DURDUR
@@ -148,15 +149,15 @@ object KomutCozucu {
     private fun medyaKomutu(t: List<String>): Niyet? {
         if (t == listOf("müzik") || t == listOf("müziği")) return Niyet.Medya(MedyaEylemi.DEVAM)
         val kapatVar = t.any { it == "kapat" || it == "kapa" || it == "kes" }
-        val nesneVar = t.any { it in MEDYA_NESNE && it !in setOf("bir", "bi", "lütfen", "hemen", "şimdi", "biraz", "bakalım") }
-        if (kapatVar && nesneVar && t.all { it in MEDYA_NESNE || it == "kapat" || it == "kapa" || it == "kes" }) {
+        val nesneVar = t.any { (it in MEDYA_NESNE || it in TV_NESNE) && it !in setOf("bir", "bi", "lütfen", "hemen", "şimdi", "biraz", "bakalım") }
+        if (kapatVar && nesneVar && t.all { it in MEDYA_NESNE || it in TV_NESNE || it == "kapat" || it == "kapa" || it == "kes" }) {
             return Niyet.Medya(MedyaEylemi.DURDUR)
         }
-        if (!t.all { it in MEDYA_NESNE || medyaAnahtari(it) != null }) return null
+        if (!t.all { it in MEDYA_NESNE || it in TV_NESNE || medyaAnahtari(it) != null }) return null
         val anahtarlar = t.mapNotNull { medyaAnahtari(it) }.toSet()
         val eylem = listOf(MedyaEylemi.DURDUR, MedyaEylemi.ONCEKI, MedyaEylemi.SONRAKI, MedyaEylemi.DEVAM)
             .firstOrNull { it in anahtarlar } ?: return null
-        if (eylem == MedyaEylemi.DEVAM && t.any { it in RADYO }) return null // "radyoyu aç" → uygulama
+        if (eylem == MedyaEylemi.DEVAM && t.any { it in RADYO || it in TV_NESNE }) return null // "radyoyu aç" → radyo
         return Niyet.Medya(eylem)
     }
 
@@ -319,6 +320,54 @@ object KomutCozucu {
         val numara = Sayilar.telefonNumarasi(k.map { it.n })
         if (numara != null) return Niyet.Ara(numara = numara)
         return Niyet.Ara(kisi = kisiSorgusu(k, yonelmeli = false, numaraModu = false))
+    }
+
+    // ---------------------------------------------------------------- radyo / televizyon
+    private fun izleMi(k: String) = k.startsWith("izle") || k.startsWith("izlet")
+
+    private fun radyoKelimesiMi(k: String): Boolean {
+        val kok = k.substringBefore('\'')
+        return kok.startsWith("radyo") || kok == "radio" || kok == "fm"
+    }
+
+    private fun tvKelimesiMi(k: String): Boolean {
+        val kok = k.substringBefore('\'')
+        return kok.startsWith("televizyon") || kok == "tv" || kok == "tvyi" || kok.startsWith("kanal")
+    }
+
+    /** Ad sayılmayan genel kelimeler. */
+    private val RADYO_GENEL = setOf(
+        "radyo", "radyoyu", "radyoda", "radyodan", "radyosu", "radyosunu", "internet", "online", "canlı", "bir", "bi"
+    )
+    private val TV_GENEL = setOf(
+        "televizyon", "televizyonu", "televizyonda", "televizyondan", "kanalı", "kanalını", "kanala", "kanalda",
+        "kanaldan", "kanalından", "canlı", "yayın", "yayını", "bir", "bi"
+    )
+
+    private fun radyoTvKomutu(k: List<Kelime>): Niyet? {
+        val t = k.map { it.n }
+        val son = t.last()
+        val oynat = son in AC_FIIL || son in CAL_FIIL || dinleMi(son) || izleMi(son)
+        if (!oynat && t.size > 1) return null
+        val nesne = if (oynat) k.dropLast(1) else k
+        val nt = nesne.map { it.n }
+        if (nt.any { it in UYGULAMA_KELIMELERI }) return null
+        val tv = nt.any { tvKelimesiMi(it) } || (izleMi(son) && nt.isNotEmpty())
+        val radyo = !tv && nt.any { radyoKelimesiMi(it) }
+        if (!tv && !radyo) return if (izleMi(son) && nt.isEmpty()) Niyet.Televizyon() else null
+        if (tv) {
+            var ad = nesne.filterNot { it.n in TV_GENEL || it.n in NESNE_BAS_DOLGU }
+            if (ad.isNotEmpty() && ad.last().n == "kanal") ad = ad.dropLast(1)
+            val kalan = ad.map { it.n.substringBefore('\'') }
+            if (kalan.isEmpty() || kalan == listOf("tv")) return Niyet.Televizyon()
+            return Niyet.Televizyon(kalan.joinToString(" "), ad.joinToString(" ") { it.ham.substringBefore('\'') })
+        }
+        val ad = nesne.filterNot { it.n in RADYO_GENEL || it.n in NESNE_BAS_DOLGU }
+        if (ad.isEmpty()) return Niyet.Radyo()
+        return Niyet.Radyo(
+            ad.joinToString(" ") { it.n.substringBefore('\'') },
+            ad.joinToString(" ") { it.ham.substringBefore('\'') }
+        )
     }
 
     // ---------------------------------------------------------------- navigasyon
@@ -485,6 +534,7 @@ object KomutCozucu {
         medyaKomutu(t)?.let { return it }
         uygulamadaArama(k)?.let { return it }
         aramaKomutu(k)?.let { return it }
+        radyoTvKomutu(k)?.let { return it }
         navigasyonKomutu(k)?.let { return it }
         acCalKomutu(k, uygulamalar)?.let { return it }
         return Niyet.Bilinmiyor(metin)

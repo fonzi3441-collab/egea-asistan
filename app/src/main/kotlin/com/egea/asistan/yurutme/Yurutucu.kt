@@ -125,8 +125,12 @@ class Yurutucu(private val aktivite: Activity) {
         val konusma = if (n.rotaBaslat) Cevaplar.rota(n.hedef) else Cevaplar.haritadaAra(adres)
         return Plan.Eylem(konusma, Zamanlama.ONCE, eylem = { act ->
             val h = nav.hazirla(adres, n.rotaBaslat)
-            act.startActivity(h.intent)
-            Rapor(h.yontem, "başlatıldı: $adres")
+            if (h.intent.resolveActivity(act.packageManager) == null) {
+                Rapor(h.yontem, "çözen uygulama yok: $adres", "Navigasyon uygulaması bulunamadı.")
+            } else {
+                act.startActivity(h.intent)
+                Rapor(h.yontem, "başlatıldı: $adres")
+            }
         })
     }
 
@@ -161,7 +165,11 @@ class Yurutucu(private val aktivite: Activity) {
         } else {
             "$ad açılıyor"
         }
-        return Plan.Eylem(konusma, Zamanlama.SONRA, eylem = { act -> Rapor(muzik.calistir(act, n), "sorgu: ${n.sorgu}") })
+        return Plan.Eylem(konusma, Zamanlama.SONRA, eylem = { act ->
+            val yontem = muzik.calistir(act, n)
+            val ek = if (yontem.startsWith("başarısız")) "Açılamadı. Müzik uygulaması bulunamadı." else null
+            Rapor(yontem, "sorgu: ${n.sorgu}", ek)
+        })
     }
 
     // ------------------------------------------------------------------ uygulama
