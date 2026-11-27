@@ -12,7 +12,10 @@ import android.content.pm.ServiceInfo
 import android.graphics.PixelFormat
 import android.graphics.drawable.GradientDrawable
 import android.os.Build
+import android.os.Handler
 import android.os.IBinder
+import android.os.Looper
+import android.os.SystemClock
 import android.provider.Settings
 import android.util.Log
 import android.view.Gravity
@@ -43,6 +46,8 @@ class YuzenButonServisi : Service() {
     private var gorunum: View? = null
     private var motor: UyandirmaMotoru? = null
     private var mikrofonluOnPlan = false
+    private val ana = Handler(Looper.getMainLooper())
+    private var engelUyarildi = false
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -70,6 +75,7 @@ class YuzenButonServisi : Service() {
     }
 
     override fun onDestroy() {
+        ana.removeCallbacksAndMessages(null)
         motor?.durdur()
         motor = null
         UyandirmaKontrol.motor = null
@@ -258,6 +264,7 @@ class YuzenButonServisi : Service() {
     }
 
     private fun dinlemeyiAc(uyandirma: Boolean = false) {
+        val istek = SystemClock.elapsedRealtime()
         try {
             startActivity(
                 Intent(this, ListenActivity::class.java)
@@ -267,7 +274,25 @@ class YuzenButonServisi : Service() {
         } catch (e: Exception) {
             Log.w(AsistanApp.ETIKET, "Dinleme ekranı açılamadı", e)
             if (uyandirma) UyandirmaKontrol.devamEt(1000)
+            return
         }
+        if (!uyandirma) return
+        // Android 10+ arka plandan ekran açmayı "üstte gösterme" izni yoksa hata vermeden engeller. Motor algılayınca
+        // kendini duraklattığı ve ancak dinleme ekranı kapanınca devam ettiği için, ekran 3 sn içinde açılmadıysa
+        // motoru yeniden başlat (sağır kalmasın) ve kullanıcıyı bir kez sesli uyar.
+        ana.postDelayed({
+            if (ListenActivity.sonAcilis < istek) {
+                Log.w(AsistanApp.ETIKET, "Hey Egea: dinleme ekranı açılamadı (arka plandan açma engellenmiş olabilir)")
+                UyandirmaKontrol.sonSorun = "dinleme ekranı açılamadı — “Üstte gösterme” izni verin"
+                if (!engelUyarildi) {
+                    engelUyarildi = true
+                    AsistanApp.ornek.konusmaci.konus("Dinleme ekranı açılamadı. Ayarlardan üstte gösterme iznini verin.")
+                }
+                UyandirmaKontrol.devamEt(0)
+            } else {
+                UyandirmaKontrol.sonSorun = null
+            }
+        }, 3000)
     }
 
     companion object {

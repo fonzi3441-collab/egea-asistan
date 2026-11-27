@@ -166,6 +166,7 @@ class TaniRaporu(private val ctx: Context) {
         satir("Eşik: ${"%.1f".format(UyandirmaKontrol.esik)} (taban ${"%.1f".format(uv?.tabanMesafe ?: 0f)} × ${"%.2f".format(AsistanApp.ornek.ayarlar.uyandirmaCarpan)}) • son söz mesafesi: ${"%.1f".format(UyandirmaKontrol.sonMesafe)}")
         val sonTetik = if (UyandirmaKontrol.sonTetik > 0) SimpleDateFormat("HH:mm:ss", Locale.ROOT).format(Date(UyandirmaKontrol.sonTetik)) else "-"
         satir("Algılama sayısı: ${UyandirmaKontrol.tetikSayisi} • son: $sonTetik • seviye: ${"%.0f".format(UyandirmaKontrol.seviyeDb)} dB")
+        UyandirmaKontrol.sonSorun?.let { satir("⚠ Son sorun: $it") }
 
         baslik("RADYO & TV")
         // Bu rapor arka plan iş parçacığında hazırlanır: MediaController'a dokunulmaz, ana iş parçacığında

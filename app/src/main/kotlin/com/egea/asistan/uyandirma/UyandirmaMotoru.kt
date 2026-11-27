@@ -24,6 +24,11 @@ class UyandirmaMotoru(private val ctx: Context, private val tetiklendi: () -> Un
     @Volatile
     private var duraklatildi = false
 
+    /** Mikrofon şu an bu motorda açık mı (dinleme ekranı, konuşma tanımayı bunun bırakılmasını bekler). */
+    @Volatile
+    var mikrofonAcik = false
+        private set
+
     private var iplik: Thread? = null
     private val ana = Handler(Looper.getMainLooper())
     private val am = ctx.getSystemService(Context.AUDIO_SERVICE) as AudioManager
@@ -121,6 +126,7 @@ class UyandirmaMotoru(private val ctx: Context, private val tetiklendi: () -> Un
                     durum("kayıt başlatılamadı (mikrofon başka uygulamada olabilir)")
                     uyu(3000)
                 } else {
+                    mikrofonAcik = true
                     durum("dinliyor")
                     var sifir = 0
                     var sayac = 0
@@ -170,8 +176,10 @@ class UyandirmaMotoru(private val ctx: Context, private val tetiklendi: () -> Un
                     // yok say
                 }
                 kayit.release()
+                mikrofonAcik = false
             }
         }
+        mikrofonAcik = false
         durum("kapalı")
     }
 }

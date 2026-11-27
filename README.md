@@ -40,7 +40,7 @@ Egea Asistan ikonuna ilk basışta kurulum sihirbazı açılır ve izinleri **te
 | Arama | Numarayı doğrudan aramak | Hayır (yoksa numara hazırlanır) |
 | Telefon durumu | Bluetooth (HFP) telefon hesabını bulmak | Hayır |
 | Bildirim gösterme (Android 13+) | Yüzen buton bildirimi | Hayır |
-| Üstte gösterme | Yüzen mikrofon butonu | Buton için evet |
+| Üstte gösterme | Yüzen mikrofon butonu; "Hey Egea" duyulunca dinleme ekranının arka plandan açılabilmesi (Android 10+) | Buton ve "Hey Egea" için evet |
 | Bildirim erişimi | Çalan müziğe doğrudan komut | Hayır (yoksa medya tuşları) |
 | Bilinmeyen kaynak | Uygulama içi güncelleme | Hayır |
 | Pil optimizasyonu | Teyp uygulamayı kapatmasın | Hayır |
@@ -93,6 +93,8 @@ Sonra **Egea Ayarlar**'da:
 - Müzik çok yüksekken algılama zorlaşır; o zaman direksiyon tuşunu ya da ekrandaki mikrofonu kullan.
   Ayarlar'da mikrofon kaynağını "İletişim (yankı giderme)" yapmak bazı teyplerde müziği bastırır.
 - Telefon görüşmesi sırasında dinleme kendiliğinden durur.
+- Android 10 ve üstünde, "Hey Egea" duyulunca dinleme ekranının başka bir uygulamanın (harita, müzik) üstünde
+  açılabilmesi için **"Üstte gösterme" izni** gerekir. İzin yoksa asistan bunu sesli söyler ve dinlemeye devam eder.
 - Teyp yeniden açıldıktan sonra Android arka planda mikrofonu kısıtlayabilir; **Egea'yı bir kez açmak** yeterli.
   Durumu Tanı ekranındaki "HEY EGEA" bölümünde görürsün.
 
@@ -106,7 +108,7 @@ Asistan dinlerken radyo otomatik durur, bitince devam eder.
 **TV:** Herkese açık, ücretsiz yayınlar (varsayılan liste: [iptv-org](https://github.com/iptv-org/iptv) Türkiye
 listesi — TRT 1, TRT Haber, Kanal D, ATV, Star, NOW, TV8, Habertürk…). Egea → **TV** → kanala dokun, tam ekran açılır;
 dokununca üst çubuk ve kanal listesi gelir, ◀ ▶ ile kanal değişir. İstersen Ayarlar'dan kendi M3U listeni girebilirsin.
-Bazı kanallar "Türkiye'den" (yurt dışında açılmaz) ya da "her an değil" (7/24 yayın yok) işaretlidir.
+Bazı kanallar "Yalnız Türkiye'de" (yurt dışında açılmaz) ya da "Kesintili yayın" (7/24 yayın yok) işaretlidir.
 
 **Sürüş güvenliği:** Araç hareket halindeyken (GPS hızı > 10 km/s) TV görüntüsü gizlenir, **ses devam eder**;
 araç durunca görüntü geri gelir. Konum izni gerekir; Ayarlar → Radyo ve TV'den kapatılabilir (önerilmez).

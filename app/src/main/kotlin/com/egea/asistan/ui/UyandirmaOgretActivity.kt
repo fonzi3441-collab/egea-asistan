@@ -65,7 +65,7 @@ class UyandirmaOgretActivity : ComponentActivity() {
                     slotYazilari[i] = yazi("“${ifadeler[i]}” — bekliyor", 19f)
                 }
             }
-            durum = yazi("Bir kayda basın, 1 saniye sonra söyleyin.", 19f, Renk.TURUNCU)
+            durum = yazi("Bir kayda basın, “ŞİMDİ SÖYLE” yazınca söyleyin.", 19f, Renk.TURUNCU)
             seviye = yazi("Ses seviyesi: -", 16f, Renk.SOLUK)
             bolum("Duyarlılık")
             duyarlilikYazi = yazi(duyarlilikMetni(AsistanApp.ornek.ayarlar.uyandirmaCarpan), 17f)

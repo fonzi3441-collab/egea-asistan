@@ -135,7 +135,7 @@ class SetupActivity : ComponentActivity() {
         )
         l += Adim(
             "Üstte gösterme",
-            "Her uygulamanın üstünde duran yüzen mikrofon butonu ve arka planda dinleme ekranını açabilmek için.",
+            "Her uygulamanın üstünde duran yüzen mikrofon butonu ve “Hey Egea” deyince dinleme ekranının harita/müzik üstünde açılabilmesi için.",
             { Izinler.ustteGosterme(this) },
             {
                 ac(

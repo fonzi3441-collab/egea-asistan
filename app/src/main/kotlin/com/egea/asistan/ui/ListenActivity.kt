@@ -37,6 +37,7 @@ import com.egea.asistan.yurutme.UygulamaYoneticisi
 import com.egea.asistan.yurutme.Yurutucu
 import com.egea.asistan.yurutme.Zamanlama
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /**
@@ -50,6 +51,7 @@ class ListenActivity : ComponentActivity() {
     private var tanima: SpeechRecognizer? = null
     private var tekrarHakki = 1
     private var hizliTekrarYapildi = false
+    private var mikrofonBeklendi = false
     private var bekleyenSoru: Plan.Soru? = null
     private var bekleyenSoruOzeti = ""
     private var kisiBekleniyor = false
@@ -90,6 +92,7 @@ class ListenActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        sonAcilis = SystemClock.elapsedRealtime()
         // Hey Egea motoru mikrofonu hemen bıraksın (konuşma tanıma kullanacak).
         UyandirmaKontrol.duraklat()
         if (BuildConfig.DEBUG && intent.getBooleanExtra(TEST_KURULUM, false)) app.ayarlar.kurulumTamam = true
@@ -108,6 +111,7 @@ class ListenActivity : ComponentActivity() {
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
+        sonAcilis = SystemClock.elapsedRealtime()
         if (bitiyor) return
         // Dinlerken mikrofon butonuna/tuşa tekrar basılırsa baştan dinle.
         tanimayiKapat()
@@ -272,6 +276,17 @@ class ListenActivity : ComponentActivity() {
     private fun dinle() {
         if (bitiyor) return
         durum(if (kisiBekleniyor) Cevaplar.KIMI_ARAYAYIM else "Dinliyorum…")
+        if (!mikrofonBeklendi && !UyandirmaKontrol.mikrofonBos()) {
+            // "Hey Egea" motoru mikrofonu bırakana kadar kısa süre bekle (en çok 0,6 sn); Android 8/9'da iki
+            // kayıt aynı anda açılamaz ve konuşma tanıma ERROR_AUDIO verir.
+            mikrofonBeklendi = true
+            lifecycleScope.launch {
+                val son = SystemClock.elapsedRealtime() + 600
+                while (!UyandirmaKontrol.mikrofonBos() && SystemClock.elapsedRealtime() < son) delay(20)
+                dinle()
+            }
+            return
+        }
         if (yedekKullan || !SpeechRecognizer.isRecognitionAvailable(this)) {
             yedekDinle()
             return
@@ -357,7 +372,7 @@ class ListenActivity : ComponentActivity() {
                 }
             }
             SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS -> mikrofonIzniIste()
-            SpeechRecognizer.ERROR_RECOGNIZER_BUSY, SpeechRecognizer.ERROR_CLIENT -> {
+            SpeechRecognizer.ERROR_RECOGNIZER_BUSY, SpeechRecognizer.ERROR_CLIENT, SpeechRecognizer.ERROR_AUDIO -> {
                 if (!hizliTekrarYapildi) {
                     hizliTekrarYapildi = true
                     dinle()
@@ -585,6 +600,10 @@ class ListenActivity : ComponentActivity() {
 
     companion object {
         const val EXTRA_UYANDIRMA = "uyandirma"
+
+        /** Ekranın son açılış zamanı (elapsedRealtime); servis, ekranın gerçekten açıldığını buradan anlar. */
+        @Volatile
+        var sonAcilis = 0L
         const val TEST_METIN = "test_metin"
         const val TEST_KURULUM = "test_kurulum_tamam"
     }

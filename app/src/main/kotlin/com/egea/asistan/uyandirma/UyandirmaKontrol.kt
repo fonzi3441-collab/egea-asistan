@@ -26,6 +26,10 @@ object UyandirmaKontrol {
     @Volatile
     var tetikSayisi: Int = 0
 
+    /** Son algılamada yaşanan sorun (tanı ekranı için; ör. ekran arka plandan açılamadı). */
+    @Volatile
+    var sonSorun: String? = null
+
     private val ana = Handler(Looper.getMainLooper())
     private val devamGorevi = Runnable { motor?.devamEt() }
 
@@ -34,6 +38,9 @@ object UyandirmaKontrol {
         ana.removeCallbacks(devamGorevi)
         motor?.duraklat()
     }
+
+    /** Uyandırma motoru mikrofonu tutmuyor mu (Android 8/9 aynı anda iki kayda izin vermez). */
+    fun mikrofonBos(): Boolean = motor?.mikrofonAcik != true
 
     /** Biraz bekleyip (konuşma tanıma mikrofonu bıraksın) yeniden dinlemeye başlar. */
     fun devamEt(gecikmeMs: Long = 800L) {
