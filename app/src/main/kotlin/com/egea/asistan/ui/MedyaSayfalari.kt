@@ -390,8 +390,16 @@ class KanalAdaptoru(private val ctx: Context, private val tikla: (M3uOkuyucu.Kan
         val k = ogeler[position]
         h.kok.background = dalgali(Tema.KART, ctx.dpF(18f))
         h.ad.text = k.ad
-        val ek = k.etiketler.filter { it.contains("Geo", true) || it.contains("24/7", true) }
-        h.alt.text = (listOf(TvKatalogu.grupAdi(k.grup)) + ek.map { if (it.contains("Geo", true)) "Türkiye'den" else "Her an değil" }).joinToString(" • ")
+        // Kategorisi olmayan kanalda kartta "Diğer" yerine "Canlı yayın" yazar (filtre çipi "Diğer" kalır).
+        val grup = TvKatalogu.grupAdi(k.grup).takeIf { it != "Diğer" } ?: "Canlı yayın"
+        val ekler = k.etiketler.mapNotNull {
+            when {
+                it.contains("Geo", true) -> "Yalnız Türkiye'de"
+                it.contains("24/7", true) -> "Kesintili yayın"
+                else -> null
+            }
+        }
+        h.alt.text = (listOf(grup) + ekler).joinToString(" • ")
         h.yildiz.setImageDrawable(null)
         h.etiket.visibility = View.GONE
         h.kok.setOnClickListener { tikla(k) }

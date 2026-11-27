@@ -230,9 +230,7 @@ class AnaSayfa(private val akt: AnaEkranActivity) {
         val sagKol = LinearLayout(akt)
         sagKol.orientation = LinearLayout.VERTICAL
         sagKol.setPadding(akt.dp(28), 0, 0, 0)
-        sagKol.addView(TextClock(akt).apply {
-            format24Hour = "d MMMM yyyy, EEEE"
-            format12Hour = "d MMMM yyyy, EEEE"
+        sagKol.addView(TurkceTarih(akt).apply {
             textSize = 22f
             setTextColor(Tema.SOLUK)
         })

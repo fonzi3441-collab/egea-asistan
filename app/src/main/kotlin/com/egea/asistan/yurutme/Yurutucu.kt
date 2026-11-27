@@ -216,8 +216,9 @@ class Yurutucu(private val aktivite: Activity) {
         val ad = n.gorunen.ifBlank { n.sorgu }
         // "TRT 1 aç", "Joy Türk aç": önce TV kanalı ve radyo listesinde güçlü eşleşme ara.
         if (n.uygulama == null && !n.sadeceAra) {
-            TvKatalogu.bul(TvKatalogu.liste(ctx), n.sorgu, 0.92)?.let { return tvAc(it.ad, it.url) }
-            val radyolar = RadyoKatalogu.liste(ctx)
+            val kanallar = withContext(Dispatchers.IO) { TvKatalogu.liste(ctx) }
+            TvKatalogu.bul(kanallar, n.sorgu, 0.92)?.let { return tvAc(it.ad, it.url) }
+            val radyolar = withContext(Dispatchers.IO) { RadyoKatalogu.liste(ctx) }
             RadyoKatalogu.bul(radyolar, n.sorgu, 0.92)?.let { r -> return radyoCal(radyolar, radyolar.indexOf(r), "${r.gorunenAd} açılıyor") }
         }
         val konusma = if (n.sadeceAra) {

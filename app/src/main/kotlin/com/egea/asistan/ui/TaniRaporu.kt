@@ -168,10 +168,11 @@ class TaniRaporu(private val ctx: Context) {
         satir("Algılama sayısı: ${UyandirmaKontrol.tetikSayisi} • son: $sonTetik • seviye: ${"%.0f".format(UyandirmaKontrol.seviyeDb)} dB")
 
         baslik("RADYO & TV")
-        val r = RadyoKontrol.anlik()
-        val caliyor = r?.currentMediaItem?.mediaMetadata?.title?.toString()
+        // Bu rapor arka plan iş parçacığında hazırlanır: MediaController'a dokunulmaz, ana iş parçacığında
+        // tutulan özet okunur (Media3 denetleyicisi başka iş parçacığından çağrılırsa uygulama çöker).
+        val r = RadyoKontrol.ozet
         satir("Radyo listesi: ${RadyoKatalogu.liste(ctx).size} istasyon • son hata: ${RadyoKatalogu.sonHata ?: "-"}")
-        satir("Çalan: ${caliyor ?: "-"} (${if (r?.isPlaying == true) "çalıyor" else "durdu"}) • oynatma hatası: ${RadyoDurumu.hata ?: "-"}")
+        satir("Çalan: ${r.baslik ?: "-"} (${if (r.caliyor) "çalıyor" else "durdu"}) • oynatma hatası: ${RadyoDurumu.hata ?: "-"}")
         satir("TV listesi: ${TvKatalogu.liste(ctx).size} kanal • ${TvKatalogu.listeAdresi()} • son hata: ${TvKatalogu.sonHata ?: "-"}")
         satir("Sürüş kilidi: ${if (AsistanApp.ornek.ayarlar.surusKilidi) "açık" else "kapalı"} • konum izni: ${isaret(Izinler.konum(ctx))}")
 

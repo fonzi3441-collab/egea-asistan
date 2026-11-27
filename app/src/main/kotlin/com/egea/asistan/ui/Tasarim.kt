@@ -19,6 +19,10 @@ import android.view.ViewOutlineProvider
 import android.widget.ImageView
 import android.widget.TextView
 import com.egea.asistan.core.TurkceMetin
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import java.util.TimeZone
 import kotlin.math.abs
 
 /** Yeni arayüzün renkleri (koyu, yüksek kontrast, araç içi). */
@@ -172,4 +176,32 @@ class FpsOlcer(private val guncelle: (Int) -> Unit) : Choreographer.FrameCallbac
 fun TextView.kalin(): TextView {
     setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL))
     return this
+}
+
+/**
+ * Sistem dili ne olursa olsun Türkçe tarih ("27 Kasım 2026, Cuma"). Çin malı teyplerin çoğu İngilizce/Çince
+ * dille geldiği için TextClock (sistem dilini kullanır) yerine bu kullanılır. Pencereye bağlıyken her dakika
+ * başında kendini yeniler; saat dilimi değişirse bir sonraki yenilemede düzelir.
+ */
+class TurkceTarih(ctx: Context) : TextView(ctx) {
+    private val bicim = SimpleDateFormat("d MMMM yyyy, EEEE", Locale.forLanguageTag("tr-TR"))
+    private val yenile = object : Runnable {
+        override fun run() {
+            bicim.timeZone = TimeZone.getDefault()
+            text = bicim.format(Date())
+            val simdi = System.currentTimeMillis()
+            postDelayed(this, 60_000L - simdi % 60_000L + 50L)
+        }
+    }
+
+    override fun onAttachedToWindow() {
+        super.onAttachedToWindow()
+        removeCallbacks(yenile)
+        yenile.run()
+    }
+
+    override fun onDetachedFromWindow() {
+        removeCallbacks(yenile)
+        super.onDetachedFromWindow()
+    }
 }

@@ -142,6 +142,10 @@ ekran 11-ayarlar
 dokun 11-ayarlar "Tanı ekranı"
 sleep 8
 ekran 12-tani
+# Yenile: raporu (radyo durumu dahil) arka planda yeniden hazırlar; radyo denetleyicisi bağlıyken çökmemeli.
+dokun 12-tani "Yenile"
+sleep 5
+ekran 13-tani-yenile
 
 echo "== Servisler"
 a shell dumpsys activity services $PKG | grep -E "ServiceRecord|isForeground|foregroundId|types=" | head -12

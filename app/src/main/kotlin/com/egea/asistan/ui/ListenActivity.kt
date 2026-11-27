@@ -64,6 +64,7 @@ class ListenActivity : ComponentActivity() {
     private lateinit var durumYazi: TextView
     private lateinit var metinYazi: TextView
     private lateinit var seviye: View
+    private lateinit var mikIkon: ImageView
 
     private val yedekBaslatici = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { sonuc ->
         yedekAcik = false
@@ -143,7 +144,7 @@ class ListenActivity : ComponentActivity() {
 
         val panel = LinearLayout(this)
         panel.orientation = LinearLayout.VERTICAL
-        panel.background = yuvarlak(Renk.SEFFAF_PANEL, dp(18).toFloat())
+        panel.background = yuvarlak(0xF00F141B.toInt(), dp(22).toFloat(), dp(1), 0x552E86F5)
         panel.setPadding(dp(28), dp(18), dp(28), dp(22))
         panel.isClickable = true
 
@@ -152,9 +153,10 @@ class ListenActivity : ComponentActivity() {
         ust.gravity = Gravity.CENTER_VERTICAL
         val ikon = ImageView(this)
         ikon.setImageResource(R.drawable.ic_mic)
-        ikon.background = yuvarlak(Renk.VURGU, dp(28).toFloat())
-        ikon.setPadding(dp(8), dp(8), dp(8), dp(8))
-        ust.addView(ikon, LinearLayout.LayoutParams(dp(56), dp(56)))
+        ikon.background = gecisli(Tema.VURGU, Tema.VURGU2, dp(30).toFloat())
+        ikon.setPadding(dp(10), dp(10), dp(10), dp(10))
+        mikIkon = ikon
+        ust.addView(ikon, LinearLayout.LayoutParams(dp(60), dp(60)))
         durumYazi = TextView(this).apply {
             text = "Dinliyorum…"
             textSize = 26f
@@ -186,7 +188,7 @@ class ListenActivity : ComponentActivity() {
         panel.addView(metinYazi)
 
         seviye = View(this)
-        seviye.background = yuvarlak(Renk.VURGU, dp(3).toFloat())
+        seviye.background = gecisli(Tema.VURGU, Tema.VURGU2, dp(3).toFloat())
         val seviyeLp = LinearLayout.LayoutParams(dp(40), dp(6))
         panel.addView(seviye, seviyeLp)
 
@@ -211,6 +213,12 @@ class ListenActivity : ComponentActivity() {
         val lp = seviye.layoutParams
         lp.width = genislik
         seviye.layoutParams = lp
+        // Mikrofon simgesi sesle birlikte hafifçe büyür (GPU özelliği, ucuz).
+        if (::mikIkon.isInitialized) {
+            val olcek = 1f + oran * 0.22f
+            mikIkon.scaleX = olcek
+            mikIkon.scaleY = olcek
+        }
     }
 
     // ---------------------------------------------------------------- dinleme
