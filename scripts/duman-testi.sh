@@ -1,19 +1,21 @@
 #!/usr/bin/env bash
 # Emülatör duman testi: debug APK'yı kurar, ekranları açar, metin komutlarını dener,
-# ekran metinlerini ve logları yazar; uygulama çökerse hata verir.
+# radyo/TV oynatmayı kontrol eder, ekran metinlerini ve logları yazar; uygulama çökerse hata verir.
 set -u
 PKG=com.egea.asistan
 APK=app/build/outputs/apk/debug/app-debug.apk
 CIKTI=duman-ciktisi
 mkdir -p "$CIKTI"
 
+a() { timeout 30 adb "$@"; }
+
 ekran() {
   local ad="$1"
-  adb shell uiautomator dump /sdcard/ui.xml >/dev/null 2>&1
-  adb pull /sdcard/ui.xml "$CIKTI/$ad.xml" >/dev/null 2>&1
-  adb exec-out screencap -p > "$CIKTI/$ad.png" 2>/dev/null
+  a shell uiautomator dump /sdcard/ui.xml >/dev/null 2>&1
+  a pull /sdcard/ui.xml "$CIKTI/$ad.xml" >/dev/null 2>&1
+  timeout 20 adb exec-out screencap -p > "$CIKTI/$ad.png" 2>/dev/null
   echo "----------------- EKRAN: $ad -----------------"
-  python3 scripts/ui_metin.py "$CIKTI/$ad.xml"
+  python3 scripts/ui_metin.py "$CIKTI/$ad.xml" | head -80
 }
 
 dokun() {
@@ -22,7 +24,7 @@ dokun() {
   xy=$(python3 scripts/ui_metin.py "$CIKTI/$ad.xml" "$metin")
   if [ -n "$xy" ]; then
     echo ">> dokun: \"$metin\" ($xy)"
-    adb shell input tap $xy
+    a shell input tap $xy
   else
     echo ">> bulunamadı: \"$metin\""
   fi
@@ -31,83 +33,125 @@ dokun() {
 komut() {
   echo
   echo "================= KOMUT: $1"
-  adb shell "am start -W -n $PKG/.ui.ListenActivity --ez test_kurulum_tamam true --es test_metin \"$1\"" | grep -E "Status|Activity|Error" || true
+  a shell "am start -n $PKG/.ui.ListenActivity --ez test_kurulum_tamam true --es test_metin \"$1\"" | grep -E "Error|Exception" || true
   sleep "${2:-7}"
-  adb shell dumpsys activity activities | grep -E "topResumedActivity|mResumedActivity" | head -2
+  a shell dumpsys activity activities | grep -E "topResumedActivity|mResumedActivity" | head -2
+}
+
+medya_durumu() {
+  echo "-- medya oturumları:"
+  a shell dumpsys media_session | grep -E "package=|state=PlaybackState|active=" | head -12
 }
 
 echo "== Cihaz"
-adb shell getprop ro.build.version.release
-adb shell getprop ro.build.version.sdk
-adb shell wm size
-adb shell wm density
-
+a shell getprop ro.build.version.release
+a shell getprop ro.build.version.sdk
 echo "== Teyp ekranına benzet: 1280x720, 160 dpi"
-adb shell wm size 1280x720
-adb shell wm density 160
+a shell wm size 1280x720
+a shell wm density 160
 
 echo "== Kurulum"
-adb install -r -g "$APK" || exit 1
-adb shell appops set $PKG SYSTEM_ALERT_WINDOW allow
-adb shell cmd notification allow_listener $PKG/$PKG.servis.MedyaDinleyiciServisi || true
-adb logcat -c
+timeout 120 adb install -r -g "$APK" || exit 1
+a shell appops set $PKG SYSTEM_ALERT_WINDOW allow
+a shell cmd notification allow_listener $PKG/$PKG.servis.MedyaDinleyiciServisi || true
+a logcat -c
 
 echo "== İlk açılış (kurulum sihirbazı beklenir)"
-adb shell am start -W -n $PKG/.ui.ListenActivity | grep -E "Status|Activity" || true
-sleep 4
+a shell am start -n $PKG/.ui.ListenActivity >/dev/null
+sleep 5
 ekran 01-ilk-acilis
-dokun 01-ilk-acilis "Atla"
+dokun 01-ilk-acilis "Kurulumu bitir"
 sleep 2
-ekran 02-sihirbaz-adim2
-dokun 02-sihirbaz-adim2 "Kurulumu bitir"
-sleep 2
-ekran 03-ozet
+ekran 02-ozet
 
-echo "== Ayarlar"
-adb shell am start -W -n $PKG/.ui.SettingsActivity | grep -E "Status|Activity" || true
-sleep 4
-ekran 04-ayarlar
+echo "== Ana ekran"
+a shell am start -n $PKG/.ui.AnaEkranActivity >/dev/null
+sleep 5
+ekran 03-ana-ekran
+
+echo "== Radyo sayfası"
+dokun 03-ana-ekran "Radyo"
+sleep 12
+ekran 04-radyo
+# ilk istasyon kartına dokun (kart metinleri arasında 'istasyon' sayısı satırından sonraki ilk ad)
+XY=$(python3 - "$CIKTI/04-radyo.xml" <<'PY'
+import re, sys, xml.etree.ElementTree as ET
+kok = ET.parse(sys.argv[1]).getroot()
+adaylar = []
+for d in kok.iter("node"):
+    if d.get("clickable") == "true" and d.get("class", "").endswith("FrameLayout"):
+        m = re.findall(r"\d+", d.get("bounds") or "")
+        if len(m) == 4:
+            x1, y1, x2, y2 = map(int, m)
+            if y1 > 150 and (x2 - x1) > 100:
+                adaylar.append(((x1 + x2) // 2, (y1 + y2) // 2))
+print(f"{adaylar[0][0]} {adaylar[0][1]}" if adaylar else "")
+PY
+)
+if [ -n "$XY" ]; then echo ">> ilk istasyon: $XY"; a shell input tap $XY; else echo ">> istasyon kartı bulunamadı"; fi
+sleep 15
+ekran 05-radyo-caliyor
+medya_durumu
+
+echo "== TV sayfası"
+ekran 06-once
+dokun 06-once "TV"
+sleep 12
+ekran 07-tv
+dokun 07-tv "TRT 1"
+sleep 20
+ekran 08-tv-oynatici
+medya_durumu
+a shell input keyevent KEYCODE_BACK
+sleep 3
 
 komut "saat kaç"
 komut "sesi on beş yap"
-komut "sonraki şarkı"
-komut "durdur"
-komut "Ahmet'i ara"
-komut "0532 123 45 67'yi ara" 9
-adb shell input keyevent KEYCODE_ENDCALL
+komut "Kral FM aç" 15
+medya_durumu
+komut "sonraki kanal" 10
+komut "radyoyu kapat"
+medya_durumu
+komut "televizyon aç" 15
+a shell dumpsys activity activities | grep -E "TvActivity" | head -2
+a shell input keyevent KEYCODE_BACK
 sleep 2
+komut "Ahmet'i ara"
 komut "Kadıköy'e git"
-komut "eve git"
 komut "YouTube'da Tarkan ara"
 komut "Tarkan Şımarık aç"
-komut "haritayı aç"
-komut "ayarları aç"
 komut "iptal"
 komut "bla bla bla" 12
 
-echo "== Sesli komut intent'i (VOICE_COMMAND)"
-adb shell am start -W -a android.intent.action.VOICE_COMMAND | grep -E "Status|Activity|Error" || true
-sleep 6
+echo "== Hey Egea öğretme ekranı (ana sayfadan)"
+a shell am start -n $PKG/.ui.AnaEkranActivity >/dev/null
+sleep 3
+dokun 06-once "Ana Sayfa"
+sleep 2
+ekran 09-ana-tekrar
+dokun 09-ana-tekrar "Hey Egea"
+sleep 4
+ekran 10-ogret
+a shell input keyevent KEYCODE_BACK
+sleep 2
 
 echo "== Tanı ekranı (Ayarlar → Tanı ekranı)"
-adb shell am start -W -n $PKG/.ui.SettingsActivity | grep -E "Status|Activity" || true
-sleep 3
-ekran 05-ayarlar-tekrar
-dokun 05-ayarlar-tekrar "Tanı ekranı"
-sleep 6
-adb shell input keyevent KEYCODE_VOLUME_UP
-sleep 2
-ekran 06-tani
+a shell am start -n $PKG/.ui.SettingsActivity >/dev/null
+sleep 4
+ekran 11-ayarlar
+dokun 11-ayarlar "Tanı ekranı"
+sleep 8
+ekran 12-tani
 
-echo "== Yüzen buton servisi"
-adb shell dumpsys activity services $PKG | grep -E "ServiceRecord|isForeground|foregroundId" | head -10
+echo "== Servisler"
+a shell dumpsys activity services $PKG | grep -E "ServiceRecord|isForeground|foregroundId|types=" | head -12
 
 echo "== Uygulama logu"
-adb logcat -d -s EgeaAsistan:V | tail -120
+a logcat -d -s EgeaAsistan:V | tail -150
 
 echo "== Çökme kontrolü"
-adb logcat -d -b crash > "$CIKTI/crash.txt" 2>/dev/null || true
-adb logcat -d | grep -E "FATAL EXCEPTION|AndroidRuntime: Process: $PKG|ANR in $PKG" -A 25 > "$CIKTI/fatal.txt" || true
+a logcat -d -b crash > "$CIKTI/crash.txt" 2>/dev/null || true
+a logcat -d | grep -E "FATAL EXCEPTION|AndroidRuntime: Process: $PKG|ANR in $PKG" -A 30 > "$CIKTI/fatal.txt" || true
 cat "$CIKTI/crash.txt"
 cat "$CIKTI/fatal.txt"
 if grep -q "$PKG" "$CIKTI/fatal.txt" "$CIKTI/crash.txt" 2>/dev/null; then
