@@ -21,6 +21,9 @@ object Izinler {
     fun arama(ctx: Context) = verildi(ctx, Manifest.permission.CALL_PHONE)
     fun telefonDurumu(ctx: Context) = verildi(ctx, Manifest.permission.READ_PHONE_STATE)
 
+    fun konum(ctx: Context) = verildi(ctx, Manifest.permission.ACCESS_FINE_LOCATION) ||
+        verildi(ctx, Manifest.permission.ACCESS_COARSE_LOCATION)
+
     fun bildirimGonderme(ctx: Context): Boolean =
         Build.VERSION.SDK_INT < 33 || verildi(ctx, Manifest.permission.POST_NOTIFICATIONS)
 

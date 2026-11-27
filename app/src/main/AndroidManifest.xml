@@ -15,6 +15,12 @@
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <!-- TV sürüş kilidi (GPS hızı) -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
@@ -30,6 +36,7 @@
     <uses-feature android:name="android.hardware.telephony" android:required="false" />
     <uses-feature android:name="android.hardware.microphone" android:required="false" />
     <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
+    <uses-feature android:name="android.hardware.location.gps" android:required="false" />
 
     <queries>
         <intent>
@@ -69,7 +76,7 @@
         android:label="@string/app_name"
         android:supportsRtl="false"
         android:theme="@style/Tema"
-        android:usesCleartextTraffic="false">
+        android:usesCleartextTraffic="true">
 
         <!-- Dinleme ekranı: başlatıcı ikonu + direksiyon sesli komut tuşu -->
         <activity
@@ -103,6 +110,37 @@
             </intent-filter>
         </activity>
 
+        <!-- Ana ekran: Radyo, TV, Asistan (ayrı başlatıcı ikonu) -->
+        <activity
+            android:name=".ui.AnaEkranActivity"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboard|keyboardHidden|navigation|uiMode"
+            android:exported="true"
+            android:icon="@mipmap/ic_ana"
+            android:label="@string/ana_adi"
+            android:launchMode="singleTask"
+            android:taskAffinity="com.egea.asistan.ana"
+            android:windowSoftInputMode="adjustPan">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <activity
+            android:name=".ui.TvActivity"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboard|keyboardHidden|navigation|uiMode"
+            android:exported="false"
+            android:label="@string/tv_adi"
+            android:launchMode="singleTask"
+            android:taskAffinity="com.egea.asistan.tv"
+            android:theme="@style/Tema.TamEkran" />
+
+        <activity
+            android:name=".ui.UyandirmaOgretActivity"
+            android:exported="false"
+            android:label="@string/uyandirma_adi"
+            android:taskAffinity="com.egea.asistan.ayarlar" />
+
         <!-- Ayarlar: ayrı başlatıcı ikonu -->
         <activity
             android:name=".ui.SettingsActivity"
@@ -133,10 +171,20 @@
         <service
             android:name=".servis.YuzenButonServisi"
             android:exported="false"
-            android:foregroundServiceType="specialUse">
+            android:foregroundServiceType="specialUse|microphone">
             <property
                 android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
                 android:value="Her uygulamanın üstünde duran sesli asistan mikrofon butonu" />
+        </service>
+
+        <service
+            android:name=".medya.RadyoServisi"
+            android:exported="true"
+            android:foregroundServiceType="mediaPlayback">
+            <intent-filter>
+                <action android:name="androidx.media3.session.MediaSessionService" />
+                <action android:name="android.media.browse.MediaBrowserService" />
+            </intent-filter>
         </service>
 
         <service

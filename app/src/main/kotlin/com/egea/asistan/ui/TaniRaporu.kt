@@ -23,6 +23,12 @@ import com.egea.asistan.Izinler
 import com.egea.asistan.servis.TusErisilebilirlikServisi
 import com.egea.asistan.servis.TusOlaylari
 import com.egea.asistan.servis.YuzenButonServisi
+import com.egea.asistan.medya.RadyoDurumu
+import com.egea.asistan.medya.RadyoKatalogu
+import com.egea.asistan.medya.RadyoKontrol
+import com.egea.asistan.medya.TvKatalogu
+import com.egea.asistan.uyandirma.UyandirmaDeposu
+import com.egea.asistan.uyandirma.UyandirmaKontrol
 import com.egea.asistan.ses.Konusmaci
 import com.egea.asistan.yurutme.AramaYoneticisi
 import com.egea.asistan.yurutme.MedyaYoneticisi
@@ -78,7 +84,7 @@ class TaniRaporu(private val ctx: Context) {
 
     // ------------------------------------------------------------------ sütun 1
     @Suppress("DEPRECATION")
-    fun sistem(turkceTanima: String): String = buildString {
+    fun sistem(turkceTanima: String, ekranBilgisi: String): String = buildString {
         baslik("CİHAZ")
         satir("Android (ayarlardaki): ${Build.VERSION.RELEASE}")
         satir("GERÇEK API: ${Build.VERSION.SDK_INT} → Android ${apiAdi(Build.VERSION.SDK_INT)}")
@@ -112,6 +118,7 @@ class TaniRaporu(private val ctx: Context) {
         satir("Depolama /data: %.1f GB toplam, %.1f GB boş".format(stat.totalBytes / 1e9, stat.availableBytes / 1e9))
         val dm = ctx.resources.displayMetrics
         satir("Ekran: ${dm.widthPixels}×${dm.heightPixels} px, ${dm.densityDpi} dpi, ölçek ${dm.density}, en küçük genişlik ${ctx.resources.configuration.smallestScreenWidthDp} dp")
+        satir("Yenileme/FPS: $ekranBilgisi")
         satir("Dil: ${Locale.getDefault()} • Telefon özelliği: ${pm.hasSystemFeature(PackageManager.FEATURE_TELEPHONY)}")
         satir("Uygulama: ${BuildConfig.VERSION_NAME} (kod ${BuildConfig.VERSION_CODE}) • güncelleme: ${BuildConfig.GUNCELLEME_REPO}")
 
@@ -151,6 +158,22 @@ class TaniRaporu(private val ctx: Context) {
             satir("⚠ TÜRKÇE SES YOK: \"Google Konuşma Hizmetleri\" (com.google.android.tts) kurun,")
             satir("  sonra Ayarlar > Dil > Metin okuma çıkışı > Türkçe ses verisini indirin.")
         }
+
+        baslik("HEY EGEA (uyandırma)")
+        val uv = UyandirmaDeposu.yukle(ctx)
+        satir("Ayar: ${if (AsistanApp.ornek.ayarlar.uyandirma) "açık" else "kapalı"} • örnek: ${uv?.sablonlar?.size ?: 0} • kaynak: ${AsistanApp.ornek.ayarlar.uyandirmaKaynak}")
+        satir("Motor: ${UyandirmaKontrol.durum}")
+        satir("Eşik: ${"%.1f".format(UyandirmaKontrol.esik)} (taban ${"%.1f".format(uv?.tabanMesafe ?: 0f)} × ${"%.2f".format(AsistanApp.ornek.ayarlar.uyandirmaCarpan)}) • son söz mesafesi: ${"%.1f".format(UyandirmaKontrol.sonMesafe)}")
+        val sonTetik = if (UyandirmaKontrol.sonTetik > 0) SimpleDateFormat("HH:mm:ss", Locale.ROOT).format(Date(UyandirmaKontrol.sonTetik)) else "-"
+        satir("Algılama sayısı: ${UyandirmaKontrol.tetikSayisi} • son: $sonTetik • seviye: ${"%.0f".format(UyandirmaKontrol.seviyeDb)} dB")
+
+        baslik("RADYO & TV")
+        val r = RadyoKontrol.anlik()
+        val caliyor = r?.currentMediaItem?.mediaMetadata?.title?.toString()
+        satir("Radyo listesi: ${RadyoKatalogu.liste(ctx).size} istasyon • son hata: ${RadyoKatalogu.sonHata ?: "-"}")
+        satir("Çalan: ${caliyor ?: "-"} (${if (r?.isPlaying == true) "çalıyor" else "durdu"}) • oynatma hatası: ${RadyoDurumu.hata ?: "-"}")
+        satir("TV listesi: ${TvKatalogu.liste(ctx).size} kanal • ${TvKatalogu.listeAdresi()} • son hata: ${TvKatalogu.sonHata ?: "-"}")
+        satir("Sürüş kilidi: ${if (AsistanApp.ornek.ayarlar.surusKilidi) "açık" else "kapalı"} • konum izni: ${isaret(Izinler.konum(ctx))}")
 
         baslik("İZİNLER")
         satir("${isaret(Izinler.mikrofon(ctx))} Mikrofon  ${isaret(Izinler.kisiler(ctx))} Kişiler  ${isaret(Izinler.arama(ctx))} Arama  ${isaret(Izinler.telefonDurumu(ctx))} Tel.durumu")

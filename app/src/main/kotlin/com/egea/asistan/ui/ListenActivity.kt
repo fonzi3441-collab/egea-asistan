@@ -30,6 +30,7 @@ import com.egea.asistan.core.KomutCozucu
 import com.egea.asistan.core.Niyet
 import com.egea.asistan.core.Secim
 import com.egea.asistan.core.SecimCozucu
+import com.egea.asistan.uyandirma.UyandirmaKontrol
 import com.egea.asistan.yurutme.Plan
 import com.egea.asistan.yurutme.Rapor
 import com.egea.asistan.yurutme.UygulamaYoneticisi
@@ -88,6 +89,8 @@ class ListenActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Hey Egea motoru mikrofonu hemen bıraksın (konuşma tanıma kullanacak).
+        UyandirmaKontrol.duraklat()
         if (BuildConfig.DEBUG && intent.getBooleanExtra(TEST_KURULUM, false)) app.ayarlar.kurulumTamam = true
         if (!app.ayarlar.kurulumTamam) {
             startActivity(Intent(this, SetupActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
@@ -130,6 +133,7 @@ class ListenActivity : ComponentActivity() {
     override fun onDestroy() {
         tanimayiKapat()
         if (!bitiyor) app.odak.birak(false)
+        UyandirmaKontrol.devamEt()
         super.onDestroy()
     }
 
@@ -223,7 +227,13 @@ class ListenActivity : ComponentActivity() {
             mikrofonIzniIste()
             return
         }
-        dinle()
+        if (intent.getBooleanExtra(EXTRA_UYANDIRMA, false) || app.ayarlar.dinliyorumDe) {
+            // "Hey Egea" sonrası: önce "Dinliyorum" de, sonra komutu dinle.
+            durum("Dinliyorum…")
+            app.konusmaci.konus("Dinliyorum") { if (!bitiyor && !isFinishing) dinle() }
+        } else {
+            dinle()
+        }
     }
 
     private fun mikrofonIzniIste() {
@@ -566,6 +576,7 @@ class ListenActivity : ComponentActivity() {
         if (BuildConfig.DEBUG) i?.getStringExtra(TEST_METIN)?.takeIf { it.isNotBlank() } else null
 
     companion object {
+        const val EXTRA_UYANDIRMA = "uyandirma"
         const val TEST_METIN = "test_metin"
         const val TEST_KURULUM = "test_kurulum_tamam"
     }

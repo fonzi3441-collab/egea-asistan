@@ -37,6 +37,10 @@ class DiagnosticsActivity : ComponentActivity() {
     private lateinit var sutun3: TextView
     private val tuslar = ArrayList<TusOlaylari.Olay>()
     private var turkceTanima = "sorgulanıyor…"
+    private var olculenFps = 0
+    private val fpsOlcer = FpsOlcer { f ->
+        olculenFps = f
+    }
 
     private val tusDinleyici = TusOlaylari.Dinleyici { o -> tusEkle(o) }
 
@@ -50,10 +54,12 @@ class DiagnosticsActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         TusOlaylari.ekle(tusDinleyici)
+        fpsOlcer.baslat()
     }
 
     override fun onPause() {
         TusOlaylari.cikar(tusDinleyici)
+        fpsOlcer.durdur()
         super.onPause()
     }
 
@@ -143,6 +149,7 @@ class DiagnosticsActivity : ComponentActivity() {
     private fun yenile(sadeceUygulamalar: Boolean = false) {
         val tusKopya = ArrayList(tuslar)
         val tt = turkceTanima
+        val ekran = yenilemeBilgisi() + " • ölçülen arayüz: ${if (olculenFps > 0) "$olculenFps FPS" else "ölçülüyor (Yenile'ye basın)"}"
         lifecycleScope.launch {
             val rapor = TaniRaporu(applicationContext)
             if (sadeceUygulamalar) {
@@ -151,7 +158,7 @@ class DiagnosticsActivity : ComponentActivity() {
                 return@launch
             }
             val (m1, m2, m3) = withContext(Dispatchers.IO) {
-                Triple(rapor.sistem(tt), rapor.uygulamalar(tusKopya), rapor.komutlar())
+                Triple(rapor.sistem(tt, ekran), rapor.uygulamalar(tusKopya), rapor.komutlar())
             }
             sutun1.text = m1
             sutun2.text = m2

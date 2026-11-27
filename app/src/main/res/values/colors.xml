@@ -2,6 +2,7 @@
 <resources>
     <color name="ikon_mavi">#FF1565C0</color>
     <color name="ikon_gri">#FF37474F</color>
+    <color name="ikon_turkuaz">#FF009688</color>
     <color name="arka">#FF0E1116</color>
     <color name="panel">#FF1A1F27</color>
     <color name="vurgu">#FF2E86F5</color>

@@ -20,6 +20,10 @@ import com.egea.asistan.Favori
 import com.egea.asistan.Izinler
 import com.egea.asistan.core.VcfOkuyucu
 import com.egea.asistan.guncelleme.Guncelleyici
+import com.egea.asistan.medya.RadyoKatalogu
+import com.egea.asistan.medya.TvKatalogu
+import com.egea.asistan.uyandirma.UyandirmaDeposu
+import com.egea.asistan.uyandirma.UyandirmaKontrol
 import com.egea.asistan.servis.TusOlaylari
 import com.egea.asistan.servis.YuzenButonServisi
 import com.egea.asistan.veri.Rehber
@@ -39,6 +43,10 @@ class SettingsActivity : ComponentActivity() {
     private var guncellemeYazi: TextView? = null
     private var vcfYazi: TextView? = null
     private var favoriKutusu: LinearLayout? = null
+    private var uyandirmaYazi: TextView? = null
+    private var medyaYazi: TextView? = null
+
+    private val konumIzni = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { }
 
     private val tusDinleyici = TusOlaylari.Dinleyici { o ->
         if (tusOgreniliyor && o.eylem == KeyEvent.ACTION_UP) tusSecildi(o.kod)
@@ -55,6 +63,21 @@ class SettingsActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         TusOlaylari.ekle(tusDinleyici)
+        YuzenButonServisi.uygunsaBaslat(this)
+        uyandirmaYazi?.text = uyandirmaMetni()
+    }
+
+    private fun uyandirmaMetni(): String {
+        val v = UyandirmaDeposu.yukle(this)
+        val ornek = if (v == null) "öğretilmedi" else "${v.sablonlar.size} örnek"
+        val acik = if (ayarlar.uyandirma) "açık" else "kapalı"
+        return "Durum: $acik • $ornek • motor: ${UyandirmaKontrol.durum}"
+    }
+
+    private fun medyaMetni(): String {
+        val r = RadyoKatalogu.liste(this).size
+        val t = TvKatalogu.liste(this).size
+        return "Radyo: $r istasyon • TV: $t kanal • TV listesi: ${TvKatalogu.listeAdresi()}"
     }
 
     override fun onPause() {
@@ -78,9 +101,67 @@ class SettingsActivity : ComponentActivity() {
             yazi("Sürüm ${BuildConfig.VERSION_NAME} (versionCode ${BuildConfig.VERSION_CODE})", 16f, Renk.SOLUK)
             satir {
                 buton("🎤 Dinlemeyi başlat", Renk.YESIL) { startActivity(Intent(this@SettingsActivity, ListenActivity::class.java)) }
+                buton("Ana ekran (Radyo/TV)", Renk.VURGU) { startActivity(Intent(this@SettingsActivity, AnaEkranActivity::class.java)) }
                 buton("Tanı ekranı", Renk.VURGU) { startActivity(Intent(this@SettingsActivity, DiagnosticsActivity::class.java)) }
                 buton("Kurulum sihirbazı", Renk.PANEL2) { startActivity(Intent(this@SettingsActivity, SetupActivity::class.java)) }
             }
+
+            // ---------------- Hey Egea
+            bolum("“Hey Egea” uyandırma kelimesi")
+            uyandirmaYazi = yazi(uyandirmaMetni(), 17f)
+            anahtar("“Hey Egea” deyince dinle", ayarlar.uyandirma) { acik ->
+                if (acik && !UyandirmaDeposu.varMi(this@SettingsActivity)) {
+                    ayarlar.uyandirma = true
+                    startActivity(Intent(this@SettingsActivity, UyandirmaOgretActivity::class.java))
+                } else {
+                    ayarlar.uyandirma = acik
+                    YuzenButonServisi.uygunsaBaslat(this@SettingsActivity, yenidenYukle = true)
+                }
+                uyandirmaYazi?.text = uyandirmaMetni()
+            }
+            buton("“Hey Egea”yı öğret / yeniden öğret", Renk.VURGU) {
+                startActivity(Intent(this@SettingsActivity, UyandirmaOgretActivity::class.java))
+            }
+            yazi("Mikrofon kaynağı (algılama kötüyse değiştirin):", 16f, Renk.SOLUK)
+            secenekler(
+                listOf(
+                    "tanima" to "Ses tanıma (önerilen)",
+                    "iletisim" to "İletişim — yankı/müzik giderme (destekleyen teyplerde)",
+                    "mikrofon" to "Ham mikrofon"
+                ),
+                ayarlar.uyandirmaKaynak
+            ) {
+                ayarlar.uyandirmaKaynak = it
+                YuzenButonServisi.uygunsaBaslat(this@SettingsActivity, yenidenYukle = true)
+            }
+            anahtar("Mikrofon/tuş ile açınca da önce “Dinliyorum” de", ayarlar.dinliyorumDe) { ayarlar.dinliyorumDe = it }
+
+            // ---------------- Radyo ve TV
+            bolum("Radyo ve TV")
+            medyaYazi = yazi(medyaMetni(), 16f, Renk.SOLUK)
+            satir {
+                buton("Radyo listesini yenile", Renk.PANEL2) {
+                    lifecycleScope.launch {
+                        RadyoKatalogu.yukle(this@SettingsActivity, zorla = true)
+                        medyaYazi?.text = medyaMetni()
+                    }
+                }
+                buton("TV listesini yenile", Renk.PANEL2) {
+                    lifecycleScope.launch {
+                        TvKatalogu.yukle(this@SettingsActivity, zorla = true)
+                        medyaYazi?.text = medyaMetni()
+                    }
+                }
+            }
+            yazi("TV kanal listesi (M3U adresi). Boş bırakılırsa açık yayınlardan oluşan varsayılan liste: ${TvKatalogu.VARSAYILAN_LISTE}", 15f, Renk.SOLUK)
+            girdi("https://…/liste.m3u", ayarlar.tvListesi, InputType.TYPE_TEXT_VARIATION_URI or InputType.TYPE_CLASS_TEXT) { ayarlar.tvListesi = it }
+            anahtar("Araç hareket halindeyken TV görüntüsünü gizle (önerilir)", ayarlar.surusKilidi) { ayarlar.surusKilidi = it }
+            if (!Izinler.konum(this@SettingsActivity)) {
+                buton("Sürüş kilidi için konum izni ver", Renk.TURUNCU) {
+                    konumIzni.launch(arrayOf(android.Manifest.permission.ACCESS_FINE_LOCATION, android.Manifest.permission.ACCESS_COARSE_LOCATION))
+                }
+            }
+            anahtar("Ana ekranda FPS göstergesi", ayarlar.fpsGoster) { ayarlar.fpsGoster = it }
 
             // ---------------- Navigasyon
             bolum("Navigasyon uygulaması")

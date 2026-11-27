@@ -24,24 +24,31 @@ import android.widget.FrameLayout
 import android.widget.ImageView
 import androidx.core.content.ContextCompat
 import com.egea.asistan.AsistanApp
+import com.egea.asistan.Izinler
 import com.egea.asistan.R
 import com.egea.asistan.ui.ListenActivity
+import com.egea.asistan.uyandirma.UyandirmaDeposu
+import com.egea.asistan.uyandirma.UyandirmaKontrol
+import com.egea.asistan.uyandirma.UyandirmaMotoru
 import kotlin.math.abs
 
 /**
- * Her uygulamanın üstünde duran, sürüklenebilir yüzen mikrofon butonu (SYSTEM_ALERT_WINDOW +
- * ön plan servisi). Dokununca yarı saydam dinleme ekranı açılır.
+ * Asistanın arka plan servisi (ön plan servisi):
+ *  - her uygulamanın üstünde duran, sürüklenebilir yüzen mikrofon butonu (SYSTEM_ALERT_WINDOW),
+ *  - "Hey Egea" uyandırma kelimesi dinleme (mikrofon, internetsiz).
+ * Dokununca / kelime duyulunca yarı saydam dinleme ekranı açılır.
  */
 class YuzenButonServisi : Service() {
     private var wm: WindowManager? = null
     private var gorunum: View? = null
+    private var motor: UyandirmaMotoru? = null
+    private var mikrofonluOnPlan = false
 
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onCreate() {
         super.onCreate()
-        onPlanaGec()
-        balonuEkle()
+        onPlanaGec(false)
         calisiyor = true
     }
 
@@ -50,17 +57,53 @@ class YuzenButonServisi : Service() {
             stopSelf()
             return START_NOT_STICKY
         }
-        if (gorunum == null) balonuEkle()
+        val a = AsistanApp.ornek.ayarlar
+        if (a.yuzenButon && Settings.canDrawOverlays(this)) balonuEkle() else balonuKaldir()
+        uyandirmaGuncelle(intent?.getBooleanExtra(EXTRA_YENIDEN_YUKLE, false) == true)
+        if (gorunum == null && motor == null) {
+            stopSelf()
+            return START_NOT_STICKY
+        }
         return START_STICKY
     }
 
     override fun onDestroy() {
+        motor?.durdur()
+        motor = null
+        UyandirmaKontrol.motor = null
+        UyandirmaKontrol.durum = "kapalı"
         balonuKaldir()
         calisiyor = false
         super.onDestroy()
     }
 
-    private fun onPlanaGec() {
+    /** Hey Egea motorunu ayarlara göre başlatır/durdurur. [yeniden]: yeni şablonlarla yeniden başlat. */
+    private fun uyandirmaGuncelle(yeniden: Boolean) {
+        val a = AsistanApp.ornek.ayarlar
+        val ister = a.uyandirma && Izinler.mikrofon(this) && UyandirmaDeposu.varMi(this)
+        if (yeniden || !ister) {
+            motor?.durdur()
+            motor = null
+            UyandirmaKontrol.motor = null
+            if (!ister) {
+                UyandirmaKontrol.durum = if (a.uyandirma) "izin ya da örnek eksik" else "kapalı"
+                if (mikrofonluOnPlan) onPlanaGec(false)
+            }
+        }
+        if (ister && motor == null) {
+            if (!onPlanaGec(true)) {
+                UyandirmaKontrol.durum = "arka planda başlatılamadı — Egea'yı bir kez açın"
+                return
+            }
+            val m = UyandirmaMotoru(this) { dinlemeyiAc(uyandirma = true) }
+            motor = m
+            UyandirmaKontrol.motor = m
+            m.baslat()
+        }
+    }
+
+    /** Ön plana geçer; [mikrofon] true ise mikrofon türüyle. Mikrofon türü reddedilirse false döner. */
+    private fun onPlanaGec(mikrofon: Boolean): Boolean {
         val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         if (Build.VERSION.SDK_INT >= 26) {
             val kanal = NotificationChannel(KANAL, "Yüzen mikrofon", NotificationManager.IMPORTANCE_MIN)
@@ -75,18 +118,32 @@ class YuzenButonServisi : Service() {
         val bildirim = bildirimKurucu()
             .setSmallIcon(R.drawable.ic_mic)
             .setContentTitle("Egea Asistan")
-            .setContentText("Konuşmak için dokunun")
+            .setContentText(if (mikrofon) "“Hey Egea” dinleniyor • dokunarak konuşun" else "Konuşmak için dokunun")
             .setContentIntent(ac)
             .setOngoing(true)
             .build()
-        try {
-            if (Build.VERSION.SDK_INT >= 34) {
+        return try {
+            if (mikrofon && Build.VERSION.SDK_INT >= 30) {
+                startForeground(
+                    BILDIRIM_NO, bildirim,
+                    (if (Build.VERSION.SDK_INT >= 34) ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE else 0) or
+                        ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE
+                )
+            } else if (Build.VERSION.SDK_INT >= 34) {
                 startForeground(BILDIRIM_NO, bildirim, ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE)
             } else {
                 startForeground(BILDIRIM_NO, bildirim)
             }
+            mikrofonluOnPlan = mikrofon
+            true
         } catch (e: Exception) {
-            Log.w(AsistanApp.ETIKET, "startForeground başarısız", e)
+            Log.w(AsistanApp.ETIKET, "startForeground başarısız (mikrofon=$mikrofon)", e)
+            if (mikrofon) {
+                onPlanaGec(false)
+                false
+            } else {
+                false
+            }
         }
     }
 
@@ -198,34 +255,44 @@ class YuzenButonServisi : Service() {
         gorunum = null
     }
 
-    private fun dinlemeyiAc() {
+    private fun dinlemeyiAc(uyandirma: Boolean = false) {
         try {
             startActivity(
                 Intent(this, ListenActivity::class.java)
+                    .putExtra(ListenActivity.EXTRA_UYANDIRMA, uyandirma)
                     .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_NO_ANIMATION)
             )
         } catch (e: Exception) {
             Log.w(AsistanApp.ETIKET, "Dinleme ekranı açılamadı", e)
+            if (uyandirma) UyandirmaKontrol.devamEt(1000)
         }
     }
 
     companion object {
         const val KANAL = "yuzen_buton"
         const val EYLEM_DURDUR = "com.egea.asistan.YUZEN_BUTON_DURDUR"
+        private const val EXTRA_YENIDEN_YUKLE = "yeniden_yukle"
         private const val BILDIRIM_NO = 1
 
         @Volatile
         var calisiyor = false
             private set
 
-        /** Ayar açıksa ve üstte gösterme izni varsa servisi başlatır. */
-        fun uygunsaBaslat(ctx: Context) {
-            if (!AsistanApp.ornek.ayarlar.yuzenButon) return
-            if (!Settings.canDrawOverlays(ctx)) return
+        /**
+         * Yüzen buton (ayar açık + üstte gösterme izni) ya da Hey Egea (açık + mikrofon izni + örnek) gerekiyorsa
+         * servisi başlatır/günceller. Ön plandaki bir ekrandan çağrılırsa mikrofon kısıtına takılmaz.
+         */
+        fun uygunsaBaslat(ctx: Context, yenidenYukle: Boolean = false) {
+            val a = AsistanApp.ornek.ayarlar
+            val balon = a.yuzenButon && Settings.canDrawOverlays(ctx)
+            val uyandirma = a.uyandirma && Izinler.mikrofon(ctx) && UyandirmaDeposu.varMi(ctx)
+            if (!balon && !uyandirma && !calisiyor) return
             try {
-                ContextCompat.startForegroundService(ctx, Intent(ctx, YuzenButonServisi::class.java))
+                ContextCompat.startForegroundService(
+                    ctx, Intent(ctx, YuzenButonServisi::class.java).putExtra(EXTRA_YENIDEN_YUKLE, yenidenYukle)
+                )
             } catch (e: Exception) {
-                Log.w(AsistanApp.ETIKET, "Yüzen buton servisi başlatılamadı", e)
+                Log.w(AsistanApp.ETIKET, "Asistan servisi başlatılamadı", e)
             }
         }
 

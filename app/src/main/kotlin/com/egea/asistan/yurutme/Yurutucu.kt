@@ -7,6 +7,11 @@ import com.egea.asistan.core.Hedef
 import com.egea.asistan.core.KisiEslestirici
 import com.egea.asistan.core.MedyaEylemi
 import com.egea.asistan.core.Niyet
+import com.egea.asistan.medya.Istasyon
+import com.egea.asistan.medya.RadyoKatalogu
+import com.egea.asistan.medya.RadyoKontrol
+import com.egea.asistan.medya.TvKatalogu
+import com.egea.asistan.ui.TvActivity
 import com.egea.asistan.veri.Rehber
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -57,6 +62,8 @@ class Yurutucu(private val aktivite: Activity) {
         is Niyet.Medya -> medyaPlani(n)
         is Niyet.SarkiCal -> sarkiPlani(n)
         is Niyet.UygulamaAc -> uygulamaPlani(n)
+        is Niyet.Radyo -> radyoPlani(n)
+        is Niyet.Televizyon -> tvPlani(n)
         is Niyet.Saat -> saatPlani(n)
         Niyet.Iptal -> Plan.Eylem(Cevaplar.TAMAM, yontem = "-", sonuc = "iptal edildi")
         is Niyet.Bilinmiyor -> Plan.Eylem(Cevaplar.ANLAMADIM, yontem = "-", sonuc = "anlaşılamadı")
@@ -156,9 +163,63 @@ class Yurutucu(private val aktivite: Activity) {
         }
     }
 
+    // ------------------------------------------------------------------ radyo
+    private suspend fun radyoPlani(n: Niyet.Radyo): Plan {
+        val liste = RadyoKatalogu.yukle(ctx)
+        val sorgu = n.istasyon
+        if (sorgu == null) {
+            val son = RadyoKatalogu.sonIstasyon()
+            val hedef = son ?: liste.firstOrNull()
+                ?: return Plan.Eylem("Radyo listesi alınamadı. İnternet bağlantısını kontrol edin.", yontem = "Radio Browser", sonuc = "liste boş: ${RadyoKatalogu.sonHata}")
+            val kuyruk = if (liste.any { it.kimlik == hedef.kimlik }) liste else listOf(hedef) + liste
+            return radyoCal(kuyruk, kuyruk.indexOfFirst { it.kimlik == hedef.kimlik }, "Radyo açılıyor, ${hedef.gorunenAd}")
+        }
+        var bulunan = RadyoKatalogu.bul(liste, sorgu)
+        var kuyruk = liste
+        if (bulunan == null) {
+            val uzak = RadyoKatalogu.ara(sorgu)
+            bulunan = RadyoKatalogu.bul(uzak, sorgu, 0.6) ?: uzak.firstOrNull()
+            if (bulunan != null) kuyruk = listOf(bulunan) + liste
+        }
+        val b = bulunan ?: return Plan.Eylem("${n.gorunen ?: sorgu} radyosu bulunamadı.", yontem = "Radio Browser", sonuc = "bulunamadı")
+        return radyoCal(kuyruk, kuyruk.indexOf(b).coerceAtLeast(0), "${b.gorunenAd} açılıyor")
+    }
+
+    private fun radyoCal(kuyruk: List<Istasyon>, indeks: Int, konusma: String): Plan =
+        Plan.Eylem(konusma, Zamanlama.SONRA, eylem = { _ ->
+            RadyoKontrol.cal(ctx, kuyruk, indeks)
+            val i = kuyruk[indeks.coerceIn(0, kuyruk.lastIndex)]
+            Rapor("Radyo (Media3)", "çalıyor: ${i.ad} ${i.url}")
+        })
+
+    // ------------------------------------------------------------------ televizyon
+    private suspend fun tvPlani(n: Niyet.Televizyon): Plan {
+        val liste = TvKatalogu.yukle(ctx)
+        if (liste.isEmpty()) return Plan.Eylem("Kanal listesi alınamadı.", yontem = "M3U", sonuc = "liste boş: ${TvKatalogu.sonHata}")
+        val sorgu = n.kanal
+        val kanal = if (sorgu == null) {
+            TvKatalogu.sonKanal(liste) ?: liste.first()
+        } else {
+            TvKatalogu.bul(liste, sorgu) ?: return Plan.Eylem("${n.gorunen ?: sorgu} kanalı bulunamadı.", yontem = "M3U", sonuc = "bulunamadı")
+        }
+        return tvAc(kanal.ad, kanal.url)
+    }
+
+    private fun tvAc(ad: String, url: String): Plan =
+        Plan.Eylem("$ad açılıyor", Zamanlama.ONCE, eylem = { act ->
+            act.startActivity(TvActivity.intent(act, url))
+            Rapor("TV (Media3)", "açıldı: $ad $url")
+        })
+
     // ------------------------------------------------------------------ şarkı
-    private fun sarkiPlani(n: Niyet.SarkiCal): Plan {
+    private suspend fun sarkiPlani(n: Niyet.SarkiCal): Plan {
         val ad = n.gorunen.ifBlank { n.sorgu }
+        // "TRT 1 aç", "Joy Türk aç": önce TV kanalı ve radyo listesinde güçlü eşleşme ara.
+        if (n.uygulama == null && !n.sadeceAra) {
+            TvKatalogu.bul(TvKatalogu.liste(ctx), n.sorgu, 0.92)?.let { return tvAc(it.ad, it.url) }
+            val radyolar = RadyoKatalogu.liste(ctx)
+            RadyoKatalogu.bul(radyolar, n.sorgu, 0.92)?.let { r -> return radyoCal(radyolar, radyolar.indexOf(r), "${r.gorunenAd} açılıyor") }
+        }
         val konusma = if (n.sadeceAra) {
             val yer = MuzikYoneticisi.bulunmaHali(n.uygulama)
             if (yer.isEmpty()) "$ad aranıyor" else "$yer $ad aranıyor"

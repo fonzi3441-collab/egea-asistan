@@ -87,6 +87,54 @@ class Ayarlar(ctx: Context) {
         get() = sp.getInt("balon_y", -1)
         set(v) = sp.edit().putInt("balon_y", v).apply()
 
+    // ---------------------------------------------------------------- Hey Egea
+    /** "Hey Egea" uyandırma kelimesiyle dinleme açık mı (öğretme yapılınca açılır). */
+    var uyandirma: Boolean
+        get() = sp.getBoolean("uyandirma", false)
+        set(v) = sp.edit().putBoolean("uyandirma", v).apply()
+
+    /** Eşik çarpanı: küçük = daha seçici (az yanlış alarm), büyük = daha kolay tetiklenir. */
+    var uyandirmaCarpan: Float
+        get() = sp.getFloat("uyandirma_carpan", 1.25f)
+        set(v) = sp.edit().putFloat("uyandirma_carpan", v).apply()
+
+    /** "tanima" (VOICE_RECOGNITION), "iletisim" (VOICE_COMMUNICATION, yankı giderme), "mikrofon" (MIC) */
+    var uyandirmaKaynak: String
+        get() = yazi("uyandirma_kaynak", "tanima")
+        set(v) = yaziKaydet("uyandirma_kaynak", v)
+
+    /** Her dinlemede (buton/tuş ile de) önce "Dinliyorum" desin mi? Hey Egea ile her zaman der. */
+    var dinliyorumDe: Boolean
+        get() = sp.getBoolean("dinliyorum_de", false)
+        set(v) = sp.edit().putBoolean("dinliyorum_de", v).apply()
+
+    // ---------------------------------------------------------------- Radyo / TV / arayüz
+    var sonIstasyon: String
+        get() = yazi("son_istasyon")
+        set(v) = yaziKaydet("son_istasyon", v)
+
+    var favoriIstasyonlar: Set<String>
+        get() = sp.getStringSet("favori_istasyonlar", emptySet())?.toSet() ?: emptySet()
+        set(v) = sp.edit().putStringSet("favori_istasyonlar", v).apply()
+
+    /** Boşsa varsayılan liste (iptv-org Türkiye) kullanılır. */
+    var tvListesi: String
+        get() = yazi("tv_listesi")
+        set(v) = yaziKaydet("tv_listesi", v.trim())
+
+    var sonKanal: String
+        get() = yazi("son_kanal")
+        set(v) = yaziKaydet("son_kanal", v)
+
+    /** Araç hareket halindeyken TV görüntüsünü gizle (ses devam eder). */
+    var surusKilidi: Boolean
+        get() = sp.getBoolean("surus_kilidi", true)
+        set(v) = sp.edit().putBoolean("surus_kilidi", v).apply()
+
+    var fpsGoster: Boolean
+        get() = sp.getBoolean("fps_goster", false)
+        set(v) = sp.edit().putBoolean("fps_goster", v).apply()
+
     var favoriler: List<Favori>
         get() = try {
             val dizi = JSONArray(yazi("favoriler", "[]"))

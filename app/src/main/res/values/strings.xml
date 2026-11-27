@@ -4,6 +4,9 @@
     <string name="ayarlar_adi">Egea Ayarlar</string>
     <string name="kurulum_adi">Egea Kurulum</string>
     <string name="tani_adi">Egea Tanı</string>
+    <string name="ana_adi">Egea</string>
+    <string name="tv_adi">Egea TV</string>
+    <string name="uyandirma_adi">Hey Egea öğret</string>
     <string name="bildirim_dinleyici_adi">Egea Asistan medya kontrolü</string>
     <string name="erisilebilirlik_adi">Egea Asistan direksiyon tuşu</string>
     <string name="erisilebilirlik_aciklama">Direksiyondaki sesli komut tuşunu (Egea Ayarlar\'da seçtiğiniz tuş kodu) yakalayıp Egea Asistan dinleme ekranını açar. Başka tuşlara ve ekran içeriğine dokunmaz.</string>

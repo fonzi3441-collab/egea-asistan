@@ -126,6 +126,14 @@ class SetupActivity : ComponentActivity() {
             )
         }
         l += Adim(
+            "Konum (TV sürüş kilidi)",
+            "Opsiyonel. Araç hareket ederken TV görüntüsünü gizleyip sadece sesi vermek için GPS hızı kullanılır. Konum hiçbir yere gönderilmez.",
+            { Izinler.konum(this) },
+            { izinIste(Manifest.permission.ACCESS_FINE_LOCATION) },
+            "Ayarlar > Uygulamalar > Egea Asistan > İzinler > Konum.\n$adb adb shell pm grant $paket android.permission.ACCESS_FINE_LOCATION",
+            opsiyonel = true
+        )
+        l += Adim(
             "Üstte gösterme",
             "Her uygulamanın üstünde duran yüzen mikrofon butonu ve arka planda dinleme ekranını açabilmek için.",
             { Izinler.ustteGosterme(this) },
